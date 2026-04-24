@@ -243,6 +243,12 @@ function cardQuestao(q) {
   const alternativas = q.alternativas && typeof q.alternativas === 'object'
     ? Object.entries(q.alternativas).map(([k, v]) => `<li><strong class="gold">${k.toUpperCase()})</strong> ${escapeHtml(v)}</li>`).join('')
     : '';
+  const imgEnun = q.imagem_url
+    ? `<div style="margin:.4rem 0 .8rem;"><img src="${escapeHtml(q.imagem_url)}" alt="Imagem do enunciado" style="max-width:100%; max-height:420px; border:1px solid var(--border); cursor:zoom-in;" onclick="window.open(this.src,'_blank')" /></div>`
+    : '';
+  const imgResol = q.imagem_resolucao_url
+    ? `<div style="margin:.6rem 0;"><img src="${escapeHtml(q.imagem_resolucao_url)}" alt="Imagem da resolução" style="max-width:100%; max-height:420px; border:1px solid var(--border); cursor:zoom-in;" onclick="window.open(this.src,'_blank')" /></div>`
+    : '';
   return `
     <div class="panel panel-body" style="margin-bottom:1rem;">
       <div class="row wrap" style="gap:.4rem; margin-bottom:.6rem;">
@@ -252,13 +258,15 @@ function cardQuestao(q) {
         ${q.dificuldade ? `<span class="chip ${q.dificuldade === 'dificil' ? 'danger' : q.dificuldade === 'medio' ? 'warn' : 'ok'}">${q.dificuldade}</span>` : ''}
       </div>
       <div style="white-space:pre-wrap; margin-bottom:.6rem;">${escapeHtml(q.enunciado)}</div>
+      ${imgEnun}
       ${alternativas ? `<ul style="list-style:none; padding-left:0; display:flex; flex-direction:column; gap:.3rem;">${alternativas}</ul>` : ''}
-      ${q.resolucao || q.resposta_correta ? `
+      ${q.resolucao || q.resposta_correta || q.imagem_resolucao_url ? `
         <details style="margin-top:.8rem; border-top:1px solid var(--border); padding-top:.6rem;">
           <summary style="cursor:pointer; color:var(--gold); font-family: 'JetBrains Mono', monospace; font-size:.75rem; letter-spacing:.15em; text-transform:uppercase;">▸ Ver gabarito e resolução</summary>
           <div style="margin-top:.6rem;">
             ${q.resposta_correta ? `<p><strong class="gold">Resposta:</strong> ${escapeHtml(q.resposta_correta)}</p>` : ''}
             ${q.resolucao ? `<div style="white-space:pre-wrap; color:var(--cream-dim);">${escapeHtml(q.resolucao)}</div>` : ''}
+            ${imgResol}
           </div>
         </details>` : ''}
     </div>

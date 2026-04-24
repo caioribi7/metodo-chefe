@@ -5,6 +5,13 @@
 let CURRENT = null;
 let CACHE_ALUNOS = [];
 
+// Estado das imagens no modal de questão
+const IMG_STATE = {
+  enunciado: { file: null, urlAtual: null, removerAtual: false },
+  resolucao: { file: null, urlAtual: null, removerAtual: false },
+};
+const MAX_IMG_BYTES = 5 * 1024 * 1024; // 5 MB
+
 (async () => {
   const r = await window.requireAuth('admin');
   if (!r) return;
@@ -43,6 +50,10 @@ function inicializar() {
   // Formulários
   document.getElementById('formTC').addEventListener('submit', criarTC);
   document.getElementById('formQuestao').addEventListener('submit', salvarQuestao);
+
+  // Inputs de imagem
+  configurarInputImagem('enunciado', 'qImgEnun', 'qImgEnunBox', 'qImgEnunPrev', 'qImgEnunRemover');
+  configurarInputImagem('resolucao', 'qImgResol', 'qImgResolBox', 'qImgResolPrev', 'qImgResolRemover');
 
   document.querySelectorAll('[data-filtro-tc]').forEach(b => {
     b.addEventListener('click', () => carregarTcsAdmin(b.dataset.filtroTc));
@@ -280,8 +291,13 @@ async function carregarQuestoesAdmin() {
         ${q.assunto ? `<span class="chip">${escapeHtml(q.assunto)}</span>` : ''}
         ${q.fonte ? `<span class="chip">${escapeHtml(q.fonte)}${q.ano ? ' · ' + q.ano : ''}</span>` : ''}
         ${q.dificuldade ? `<span class="chip ${q.dificuldade === 'dificil' ? 'danger' : q.dificuldade === 'medio' ? 'warn' : 'ok'}">${q.dificuldade}</span>` : ''}
+        ${q.imagem_url ? '<span class="chip">📷 enunciado</span>' : ''}
+        ${q.imagem_resolucao_url ? '<span class="chip">📷 resolução</span>' : ''}
       </div>
-      <div style="white-space:pre-wrap;">${escapeHtml(q.enunciado.slice(0, 280))}${q.enunciado.length > 280 ? '...' : ''}</div>
+      <div class="row" style="gap:1rem; align-items:flex-start;">
+        ${q.imagem_url ? `<img src="${escapeHtml(q.imagem_url)}" style="width:110px; height:80px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;" />` : ''}
+        <div style="white-space:pre-wrap; flex:1;">${escapeHtml(q.enunciado.slice(0, 280))}${q.enunciado.length > 280 ? '...' : ''}</div>
+      </div>
       <div class="row mt-2">
         <button class="btn btn-ghost btn-sm" onclick='abrirModalQuestao(${JSON.stringify(q).replace(/'/g, "&#39;")})'>Editar</button>
         <button class="btn btn-danger btn-sm" onclick="excluirQuestao('${q.id}')">Excluir</button>
@@ -294,6 +310,7 @@ window.abrirModalQuestao = function (q) {
   const m = document.getElementById('modalQuestao');
   m.classList.remove('hidden');
   document.getElementById('formQuestao').reset();
+  resetImgState();
   if (q && q.id) {
     document.getElementById('modalQuestaoTitulo').textContent = 'Editar questão';
     document.getElementById('qId').value = q.id;
@@ -309,6 +326,9 @@ window.abrirModalQuestao = function (q) {
     ['a', 'b', 'c', 'd', 'e'].forEach(k => {
       document.getElementById('qA_' + k).value = alts[k] || '';
     });
+    // Imagens existentes
+    if (q.imagem_url) carregarImagemExistente('enunciado', q.imagem_url, 'qImgEnunBox', 'qImgEnunPrev');
+    if (q.imagem_resolucao_url) carregarImagemExistente('resolucao', q.imagem_resolucao_url, 'qImgResolBox', 'qImgResolPrev');
   } else {
     document.getElementById('modalQuestaoTitulo').textContent = 'Nova questão';
     document.getElementById('qId').value = '';
@@ -318,38 +338,139 @@ window.fecharModalQuestao = function () {
   document.getElementById('modalQuestao').classList.add('hidden');
 };
 
+function resetImgState() {
+  IMG_STATE.enunciado = { file: null, urlAtual: null, removerAtual: false };
+  IMG_STATE.resolucao = { file: null, urlAtual: null, removerAtual: false };
+  ['qImgEnunBox', 'qImgResolBox'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  ['qImgEnunPrev', 'qImgResolPrev'].forEach(id => document.getElementById(id).removeAttribute('src'));
+}
+
+function carregarImagemExistente(tipo, url, boxId, imgId) {
+  IMG_STATE[tipo].urlAtual = url;
+  document.getElementById(imgId).src = url;
+  document.getElementById(boxId).classList.remove('hidden');
+}
+
+function configurarInputImagem(tipo, inputId, boxId, imgId, btnRemoverId) {
+  const input = document.getElementById(inputId);
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast('Arquivo precisa ser uma imagem.', 'err');
+      input.value = '';
+      return;
+    }
+    if (file.size > MAX_IMG_BYTES) {
+      toast('Imagem maior que 5MB. Reduza antes de enviar.', 'err');
+      input.value = '';
+      return;
+    }
+    IMG_STATE[tipo].file = file;
+    IMG_STATE[tipo].removerAtual = false;
+    document.getElementById(imgId).src = URL.createObjectURL(file);
+    document.getElementById(boxId).classList.remove('hidden');
+  });
+
+  document.getElementById(btnRemoverId).addEventListener('click', () => {
+    IMG_STATE[tipo].file = null;
+    IMG_STATE[tipo].removerAtual = !!IMG_STATE[tipo].urlAtual;
+    input.value = '';
+    document.getElementById(imgId).removeAttribute('src');
+    document.getElementById(boxId).classList.add('hidden');
+  });
+}
+
+// Extrai o caminho do objeto a partir do URL público
+function pathDoStorage(url) {
+  if (!url) return null;
+  const marcador = '/storage/v1/object/public/questoes/';
+  const i = url.indexOf(marcador);
+  return i >= 0 ? url.slice(i + marcador.length) : null;
+}
+
+async function processarImagem(tipo) {
+  const st = IMG_STATE[tipo];
+  // Caso 1: subir nova (substitui ou cria)
+  if (st.file) {
+    if (st.urlAtual) {
+      const oldPath = pathDoStorage(st.urlAtual);
+      if (oldPath) await window.db.storage.from('questoes').remove([oldPath]);
+    }
+    const ext = (st.file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const path = `${tipo}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await window.db.storage.from('questoes').upload(path, st.file, {
+      cacheControl: '3600', upsert: false, contentType: st.file.type
+    });
+    if (error) throw error;
+    const { data } = window.db.storage.from('questoes').getPublicUrl(path);
+    return data.publicUrl;
+  }
+  // Caso 2: remover a atual
+  if (st.removerAtual && st.urlAtual) {
+    const oldPath = pathDoStorage(st.urlAtual);
+    if (oldPath) await window.db.storage.from('questoes').remove([oldPath]);
+    return null;
+  }
+  // Caso 3: manter como estava
+  return st.urlAtual;
+}
+
 async function salvarQuestao(e) {
   e.preventDefault();
-  const alts = {};
-  ['a', 'b', 'c', 'd', 'e'].forEach(k => {
-    const v = document.getElementById('qA_' + k).value.trim();
-    if (v) alts[k] = v;
-  });
-  const payload = {
-    enunciado: document.getElementById('qEnun').value.trim(),
-    materia: document.getElementById('qMat').value,
-    assunto: document.getElementById('qAssunto').value.trim() || null,
-    dificuldade: document.getElementById('qDif').value || null,
-    fonte: document.getElementById('qFonte').value.trim() || null,
-    ano: document.getElementById('qAno').value ? parseInt(document.getElementById('qAno').value) : null,
-    alternativas: Object.keys(alts).length ? alts : null,
-    resposta_correta: document.getElementById('qResp').value.trim() || null,
-    resolucao: document.getElementById('qResol').value.trim() || null,
-  };
-  const id = document.getElementById('qId').value;
-  const req = id
-    ? window.db.from('questoes').update(payload).eq('id', id)
-    : window.db.from('questoes').insert(payload);
-  const { error } = await req;
-  if (error) { toast(error.message, 'err'); return; }
-  toast('Questão salva.', 'ok');
-  fecharModalQuestao();
-  carregarStats();
-  carregarQuestoesAdmin();
+  const btn = document.getElementById('btnSalvarQ');
+  btn.disabled = true; const txtOrig = btn.textContent; btn.textContent = 'Salvando...';
+
+  try {
+    const alts = {};
+    ['a', 'b', 'c', 'd', 'e'].forEach(k => {
+      const v = document.getElementById('qA_' + k).value.trim();
+      if (v) alts[k] = v;
+    });
+
+    const imagem_url = await processarImagem('enunciado');
+    const imagem_resolucao_url = await processarImagem('resolucao');
+
+    const payload = {
+      enunciado: document.getElementById('qEnun').value.trim(),
+      materia: document.getElementById('qMat').value,
+      assunto: document.getElementById('qAssunto').value.trim() || null,
+      dificuldade: document.getElementById('qDif').value || null,
+      fonte: document.getElementById('qFonte').value.trim() || null,
+      ano: document.getElementById('qAno').value ? parseInt(document.getElementById('qAno').value) : null,
+      alternativas: Object.keys(alts).length ? alts : null,
+      resposta_correta: document.getElementById('qResp').value.trim() || null,
+      resolucao: document.getElementById('qResol').value.trim() || null,
+      imagem_url,
+      imagem_resolucao_url,
+    };
+    const id = document.getElementById('qId').value;
+    const req = id
+      ? window.db.from('questoes').update(payload).eq('id', id)
+      : window.db.from('questoes').insert(payload);
+    const { error } = await req;
+    if (error) throw error;
+    toast('Questão salva.', 'ok');
+    fecharModalQuestao();
+    carregarStats();
+    carregarQuestoesAdmin();
+  } catch (err) {
+    toast('Erro: ' + (err.message || err), 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
 }
 
 window.excluirQuestao = async function (id) {
   if (!confirm('Excluir esta questão permanentemente?')) return;
+  // Pega as imagens antes de apagar a linha
+  const { data: q } = await window.db.from('questoes')
+    .select('imagem_url, imagem_resolucao_url').eq('id', id).single();
+  const paths = [];
+  if (q?.imagem_url) { const p = pathDoStorage(q.imagem_url); if (p) paths.push(p); }
+  if (q?.imagem_resolucao_url) { const p = pathDoStorage(q.imagem_resolucao_url); if (p) paths.push(p); }
+  if (paths.length) await window.db.storage.from('questoes').remove(paths);
+
   const { error } = await window.db.from('questoes').delete().eq('id', id);
   if (error) { toast(error.message, 'err'); return; }
   toast('Questão excluída.', 'ok');

@@ -54,10 +54,17 @@ create table if not exists public.questoes (
   alternativas jsonb,
   resposta_correta text,
   resolucao text,
+  imagem_url text,
+  imagem_resolucao_url text,
   tags text[] default '{}',
   created_at timestamptz default now()
 );
 create index if not exists idx_questoes_filtros on public.questoes(materia, dificuldade);
+
+-- ---------- 4.1) STORAGE: bucket de imagens das questões ----------
+insert into storage.buckets (id, name, public)
+values ('questoes', 'questoes', true)
+on conflict (id) do nothing;
 
 -- ---------- 5) FUNÇÃO HELPER is_admin() ----------
 -- Evita recursão em políticas RLS.
@@ -186,6 +193,23 @@ create policy "questoes_select_auth" on public.questoes
 drop policy if exists "questoes_all_admin" on public.questoes;
 create policy "questoes_all_admin" on public.questoes
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- ---------- STORAGE: políticas do bucket 'questoes' ----------
+drop policy if exists "questoes_img_select" on storage.objects;
+create policy "questoes_img_select" on storage.objects
+  for select using (bucket_id = 'questoes');
+
+drop policy if exists "questoes_img_insert" on storage.objects;
+create policy "questoes_img_insert" on storage.objects
+  for insert with check (bucket_id = 'questoes' and public.is_admin());
+
+drop policy if exists "questoes_img_update" on storage.objects;
+create policy "questoes_img_update" on storage.objects
+  for update using (bucket_id = 'questoes' and public.is_admin());
+
+drop policy if exists "questoes_img_delete" on storage.objects;
+create policy "questoes_img_delete" on storage.objects
+  for delete using (bucket_id = 'questoes' and public.is_admin());
 
 -- ============================================================
 -- FIM — Depois de rodar isto, crie sua conta pelo app
