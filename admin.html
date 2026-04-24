@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel — Método Chefe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="navbar">
+  <a href="admin.html" class="emblema">
+    <span class="emblema-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 2l3 7h7l-5.5 4.5L18 22l-6-4.5L6 22l1.5-8.5L2 9h7z"/>
+      </svg>
+    </span>
+    <span class="emblema-nome">Método <em>Chefe</em> · Painel</span>
+  </a>
+  <nav>
+    <a href="#painel" class="nav-link active" data-tab="painel">Painel</a>
+    <a href="#alunos" class="nav-link" data-tab="alunos">Alunos</a>
+    <a href="#tcs" class="nav-link" data-tab="tcs">TCs</a>
+    <a href="#questoes" class="nav-link" data-tab="questoes">Questões</a>
+    <a href="#" class="nav-link" id="btnSair">Sair</a>
+  </nav>
+</header>
+
+<main class="shell">
+  <!-- Cabeçalho -->
+  <section class="panel panel-body" style="margin-bottom:1.5rem;">
+    <div class="row between wrap">
+      <div>
+        <div class="kicker">Painel Admin</div>
+        <h1 class="panel-title" style="font-size:1.8rem; margin-top:.25rem;" id="adminNome">Chefe</h1>
+        <p class="muted small">Visão geral dos alunos e das operações em andamento.</p>
+      </div>
+      <div class="row">
+        <div class="stat" style="min-width:140px;"><div class="stat-kicker">Alunos</div><div class="stat-value" id="sAlunos">0</div><div class="stat-sub">ativos</div></div>
+        <div class="stat" style="min-width:140px;"><div class="stat-kicker">TCs</div><div class="stat-value" id="sTcs">0</div><div class="stat-sub">pendentes</div></div>
+        <div class="stat" style="min-width:140px;"><div class="stat-kicker">Questões</div><div class="stat-value" id="sQuestoes">0</div><div class="stat-sub">no banco</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAINEL -->
+  <section data-painel="painel">
+    <div class="grid grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">Atividade recente</h2></div>
+        <div class="panel-body" id="feedRecente"><p class="muted small">Carregando...</p></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">Horas de estudo por aluno (7 dias)</h2></div>
+        <div class="panel-body" id="rankAlunos"><p class="muted small">Carregando...</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALUNOS -->
+  <section data-painel="alunos" class="hidden">
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Tropa</h2></div>
+      <div class="panel-body" style="padding:0;">
+        <div style="overflow-x:auto;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Nome</th><th>Escolaridade</th><th>Prova militar</th><th>Olimpíadas</th><th>Horas 7d</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyAlunos"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TCs -->
+  <section data-painel="tcs" class="hidden">
+    <div class="grid grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">Criar TC</h2></div>
+        <div class="panel-body">
+          <form id="formTC">
+            <div class="field">
+              <label for="tcAluno">Aluno</label>
+              <select class="select" id="tcAluno" required></select>
+            </div>
+            <div class="field">
+              <label for="tcTitulo">Título</label>
+              <input class="input" id="tcTitulo" required placeholder="Ex.: Lista de trigonometria" />
+            </div>
+            <div class="field">
+              <label for="tcDesc">Descrição</label>
+              <textarea class="textarea" id="tcDesc" placeholder="Orientações, itens específicos, links..."></textarea>
+            </div>
+            <div class="grid grid-2" style="gap:1rem;">
+              <div class="field">
+                <label for="tcMateria">Matéria</label>
+                <select class="select" id="tcMateria"></select>
+              </div>
+              <div class="field">
+                <label for="tcPrazo">Prazo</label>
+                <input class="input" id="tcPrazo" type="date" />
+              </div>
+            </div>
+            <button class="btn" type="submit">Emitir TC</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">TCs emitidas</h2>
+          <div class="row">
+            <button class="btn btn-ghost btn-sm" data-filtro-tc="todas">Todas</button>
+            <button class="btn btn-ghost btn-sm" data-filtro-tc="pendente">Pendentes</button>
+            <button class="btn btn-ghost btn-sm" data-filtro-tc="concluida">Concluídas</button>
+          </div>
+        </div>
+        <div class="panel-body" id="listaTcsAdmin"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUESTOES -->
+  <section data-painel="questoes" class="hidden">
+    <div class="grid" style="grid-template-columns: 1fr; gap:1.2rem;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Banco de questões</h2>
+          <button class="btn" onclick="abrirModalQuestao()">+ Nova questão</button>
+        </div>
+        <div class="panel-body">
+          <div class="grid grid-3" style="margin-bottom:1rem;">
+            <div class="field" style="margin:0;">
+              <label>Matéria</label>
+              <select class="select" id="aqfMateria"><option value="">Todas</option></select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Dificuldade</label>
+              <select class="select" id="aqfDif">
+                <option value="">Todas</option>
+                <option value="facil">Fácil</option>
+                <option value="medio">Médio</option>
+                <option value="dificil">Difícil</option>
+              </select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Fonte / prova</label>
+              <input class="input" id="aqfFonte" placeholder="Ex.: EsPCEx, OBM..." />
+            </div>
+          </div>
+          <div id="listaQuestoesAdmin"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Modal nova/editar questão -->
+<div id="modalQuestao" class="modal-backdrop hidden" onclick="if(event.target===this) fecharModalQuestao()">
+  <div class="modal panel">
+    <button class="modal-close" onclick="fecharModalQuestao()">×</button>
+    <div class="panel-head">
+      <h3 class="panel-title" id="modalQuestaoTitulo">Nova questão</h3>
+    </div>
+    <div class="panel-body">
+      <form id="formQuestao">
+        <input type="hidden" id="qId" />
+        <div class="field">
+          <label for="qEnun">Enunciado</label>
+          <textarea class="textarea" id="qEnun" required style="min-height:140px;"></textarea>
+        </div>
+        <div class="grid grid-2" style="gap:1rem;">
+          <div class="field">
+            <label for="qMat">Matéria</label>
+            <select class="select" id="qMat" required></select>
+          </div>
+          <div class="field">
+            <label for="qAssunto">Assunto</label>
+            <input class="input" id="qAssunto" placeholder="Ex.: Cônicas" />
+          </div>
+        </div>
+        <div class="grid grid-3" style="gap:1rem;">
+          <div class="field">
+            <label for="qDif">Dificuldade</label>
+            <select class="select" id="qDif">
+              <option value="">—</option>
+              <option value="facil">Fácil</option>
+              <option value="medio">Médio</option>
+              <option value="dificil">Difícil</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="qFonte">Fonte</label>
+            <input class="input" id="qFonte" placeholder="EsPCEx, OBM..." />
+          </div>
+          <div class="field">
+            <label for="qAno">Ano</label>
+            <input class="input" id="qAno" type="number" min="1950" max="2100" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Alternativas <span class="muted small">(deixe em branco se for dissertativa)</span></label>
+          <div class="col" style="gap:.4rem;">
+            <input class="input" id="qA_a" placeholder="A) ..." />
+            <input class="input" id="qA_b" placeholder="B) ..." />
+            <input class="input" id="qA_c" placeholder="C) ..." />
+            <input class="input" id="qA_d" placeholder="D) ..." />
+            <input class="input" id="qA_e" placeholder="E) ..." />
+          </div>
+        </div>
+        <div class="field">
+          <label for="qResp">Resposta correta</label>
+          <input class="input" id="qResp" placeholder="Ex.: C ou um valor numérico" />
+        </div>
+        <div class="field">
+          <label for="qResol">Resolução</label>
+          <textarea class="textarea" id="qResol" style="min-height:120px;"></textarea>
+        </div>
+        <button class="btn" type="submit" id="btnSalvarQ">Salvar questão</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/admin.js"></script>
+</body>
+</html>

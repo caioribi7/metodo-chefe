@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Método Chefe — Preparação de elite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="navbar">
+  <a href="index.html" class="emblema">
+    <span class="emblema-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 2l3 7h7l-5.5 4.5L18 22l-6-4.5L6 22l1.5-8.5L2 9h7z"/>
+      </svg>
+    </span>
+    <span class="emblema-nome">Método <em>Chefe</em></span>
+  </a>
+  <nav>
+    <a href="#sobre" class="nav-link">Sobre</a>
+    <a href="#metodo" class="nav-link">Método</a>
+    <a href="cadastro.html" class="nav-link">Cadastrar</a>
+    <a href="#login" class="nav-link active" onclick="abrirLogin(event)">Entrar</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="kicker">Mentoria • Provas Militares & Olimpíadas</div>
+  <h1>Para os Disciplinados. <br/><em>Preparação de Alto Nível.</em></h1>
+  <p>A plataforma do <strong>Método Chefe</strong> estrutura sua rotina, mede seus resultados e entrega o que falta para você furar o bloqueio das provas mais exigentes do país.</p>
+  <div class="row" style="justify-content:center; gap:0.8rem;">
+    <a href="cadastro.html" class="btn">Entrar para a tropa</a>
+    <a href="#" class="btn btn-ghost" onclick="abrirLogin(event)">Já tenho conta</a>
+  </div>
+</section>
+
+<main class="shell">
+  <div class="divisor">★ O Método ★</div>
+
+  <section id="metodo" class="grid grid-3">
+    <div class="panel panel-body">
+      <div class="kicker">01 · Doutrina</div>
+      <h3 class="panel-title mt-2">Alvo definido</h3>
+      <p class="muted small">EsPCEx, AFA, Escola Naval, EFOMM, ITA, IME, OBM, OBF e mais. Seu plano é desenhado com base na prova que você quer furar.</p>
+    </div>
+    <div class="panel panel-body">
+      <div class="kicker">02 · Operação</div>
+      <h3 class="panel-title mt-2">Sessões cronometradas</h3>
+      <p class="muted small">Registre cada hora de estudo, por matéria e tópico. O painel do mentor enxerga tudo em tempo real.</p>
+    </div>
+    <div class="panel panel-body">
+      <div class="kicker">03 · Comando</div>
+      <h3 class="panel-title mt-2">TCs e banco de questões</h3>
+      <p class="muted small">Tarefas de casa objetivas do mentor e acesso a um banco de questões selecionadas das provas-alvo.</p>
+    </div>
+  </section>
+
+  <div class="divisor">★ Quem se alista ★</div>
+
+  <section id="sobre" class="panel panel-body">
+    <div class="row wrap" style="gap:2rem;">
+      <div style="flex:1; min-width:260px;">
+        <div class="kicker">Perfil do aluno</div>
+        <h2 class="panel-title mt-2" style="font-size:1.6rem;">Feito para quem tem prova marcada.</h2>
+        <p class="muted">Cada aluno entra declarando sua escolaridade, a prova militar alvo e as olimpíadas que vai disputar. E tem seu plano montado a partir daí.</p>
+      </div>
+      <div style="flex:1; min-width:260px;">
+        <ul class="col" style="list-style:none; padding:0; gap:0.6rem;">
+          <li class="chip gold">EsPCEx · AFA · EN · EFOMM · ITA · IME</li>
+          <li class="chip gold">Colégio Naval · EPCAr · EEAR · EsSA</li>
+          <li class="chip gold">OBM · OBMEP · OBF · OBQ · OBB · OBI</li>
+          <li class="chip gold">ONC · ONHB · OBA · OBR</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div style="height:4rem;"></div>
+  <footer style="text-align:center; padding:2rem 0; color:var(--cream-dim); font-size:.85rem;">
+    <span class="kicker">Método Chefe</span>
+    <p>Forjado para disciplina. Projetado para resultado.</p>
+  </footer>
+</main>
+
+<!-- Modal de Login -->
+<div id="modalLogin" class="modal-backdrop hidden" onclick="if(event.target===this) fecharLogin()">
+  <div class="modal panel">
+    <button class="modal-close" onclick="fecharLogin()" aria-label="Fechar">×</button>
+    <div class="panel-head">
+      <div>
+        <div class="kicker">Acesso restrito</div>
+        <h3 class="panel-title" style="margin-top:.25rem;">Entrar no sistema</h3>
+      </div>
+    </div>
+    <div class="panel-body">
+      <form id="formLogin">
+        <div class="field">
+          <label for="loginEmail">E-mail</label>
+          <input class="input" id="loginEmail" type="email" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="loginSenha">Senha</label>
+          <input class="input" id="loginSenha" type="password" required autocomplete="current-password" />
+        </div>
+        <button class="btn" style="width:100%;" type="submit" id="btnLogin">Entrar</button>
+      </form>
+      <div class="divisor">ou</div>
+      <p class="small muted" style="text-align:center;">Ainda não tem cadastro? <a href="cadastro.html">Alistar-se agora →</a></p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script>
+  // Se já logado, manda pro painel certo
+  (async () => {
+    const { data: { session } } = await window.db.auth.getSession();
+    if (session) {
+      const { data: p } = await window.db.from('profiles').select('role').eq('id', session.user.id).single();
+      if (p?.role === 'admin') location.href = 'admin.html';
+      else if (p) location.href = 'aluno.html';
+    }
+  })();
+
+  function abrirLogin(e) { if (e) e.preventDefault(); document.getElementById('modalLogin').classList.remove('hidden'); }
+  function fecharLogin() { document.getElementById('modalLogin').classList.add('hidden'); }
+
+  document.getElementById('formLogin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const senha = document.getElementById('loginSenha').value;
+    const btn = document.getElementById('btnLogin');
+    btn.disabled = true; btn.textContent = 'Entrando...';
+    const { data, error } = await window.db.auth.signInWithPassword({ email, password: senha });
+    btn.disabled = false; btn.textContent = 'Entrar';
+    if (error) { toast('Falha no login: ' + error.message, 'err'); return; }
+    const { data: p } = await window.db.from('profiles').select('role').eq('id', data.user.id).single();
+    location.href = p?.role === 'admin' ? 'admin.html' : 'aluno.html';
+  });
+</script>
+</body>
+</html>

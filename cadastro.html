@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro — Método Chefe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="navbar">
+  <a href="index.html" class="emblema">
+    <span class="emblema-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 2l3 7h7l-5.5 4.5L18 22l-6-4.5L6 22l1.5-8.5L2 9h7z"/>
+      </svg>
+    </span>
+    <span class="emblema-nome">Método <em>Chefe</em></span>
+  </a>
+  <nav>
+    <a href="index.html" class="nav-link">← Início</a>
+  </nav>
+</header>
+
+<main class="auth-page">
+  <div class="auth-card panel" style="width: min(640px, 100%);">
+    <div class="panel-head">
+      <div>
+        <div class="kicker">Cadastro · Fase 01</div>
+        <h2 class="panel-title" style="margin-top:.25rem;">Cadastro do aluno</h2>
+      </div>
+    </div>
+    <div class="panel-body">
+      <form id="formCadastro">
+        <div class="field">
+          <label for="nome">Nome completo</label>
+          <input class="input" id="nome" required placeholder="Como os aliados devem te chamar" />
+        </div>
+
+        <div class="grid grid-2" style="gap:1rem;">
+          <div class="field">
+            <label for="email">E-mail</label>
+            <input class="input" id="email" type="email" required autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="senha">Senha</label>
+            <input class="input" id="senha" type="password" required minlength="6" autocomplete="new-password" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="escolaridade">Escolaridade atual</label>
+          <select class="select" id="escolaridade" required>
+            <option value="">Selecione...</option>
+            <option>Ensino Fundamental II</option>
+            <option>1º ano do Ensino Médio</option>
+            <option>2º ano do Ensino Médio</option>
+            <option>3º ano do Ensino Médio</option>
+            <option>Pré-militar / Cursinho</option>
+            <option>Já concluí o Ensino Médio</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="provaMilitar">Prova militar alvo</label>
+          <select class="select" id="provaMilitar">
+            <option value="">Nenhuma / Foco só em olimpíadas</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Olimpíadas alvo <span class="muted small">(pode selecionar mais de uma)</span></label>
+          <div class="check-group" id="listaOlimpiadas"></div>
+        </div>
+
+        <button class="btn mt-2" style="width:100%;" type="submit" id="btnCadastrar">
+          Fazer o cadastro
+        </button>
+
+        <p class="small muted mt-2" style="text-align:center;">
+          Já cadastrado? <a href="index.html">Entrar →</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script>
+  // Popula selects
+  const selProva = document.getElementById('provaMilitar');
+  window.PROVAS_MILITARES.forEach(p => {
+    const o = document.createElement('option'); o.value = p; o.textContent = p; selProva.appendChild(o);
+  });
+  const divOlimp = document.getElementById('listaOlimpiadas');
+  window.OLIMPIADAS.forEach(o => {
+    const id = 'olimp_' + o.replace(/\s/g, '');
+    const lbl = document.createElement('label');
+    lbl.className = 'check-card';
+    lbl.innerHTML = `<input type="checkbox" id="${id}" value="${o}"><span>${o}</span>`;
+    divOlimp.appendChild(lbl);
+    lbl.querySelector('input').addEventListener('change', (e) => {
+      lbl.classList.toggle('on', e.target.checked);
+    });
+  });
+
+  document.getElementById('formCadastro').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnCadastrar');
+    btn.disabled = true; btn.textContent = 'Processando cadastro...';
+
+    const nome = document.getElementById('nome').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const senha = document.getElementById('senha').value;
+    const escolaridade = document.getElementById('escolaridade').value;
+    const prova_militar = document.getElementById('provaMilitar').value || null;
+    const olimpiadas = Array.from(document.querySelectorAll('#listaOlimpiadas input:checked')).map(i => i.value);
+
+    const { data, error } = await window.db.auth.signUp({
+      email, password: senha,
+      options: {
+        data: { nome, escolaridade, prova_militar, olimpiadas },
+        emailRedirectTo: window.location.origin + '/mentoria/index.html'
+      }
+    });
+
+    btn.disabled = false; btn.textContent = 'Fazer o cadastro';
+
+    if (error) { toast('Erro: ' + error.message, 'err'); return; }
+
+    if (data.session) {
+      toast('Cadastro concluído. Bem-vindo, chefe.', 'ok');
+      setTimeout(() => location.href = 'aluno.html', 1000);
+    } else {
+      toast('Cadastro criado! Verifique seu e-mail para confirmar.', 'ok');
+      setTimeout(() => location.href = 'index.html', 2500);
+    }
+  });
+</script>
+</body>
+</html>

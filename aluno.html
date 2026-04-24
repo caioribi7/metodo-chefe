@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quartel do aluno — Método Chefe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="navbar">
+  <a href="aluno.html" class="emblema">
+    <span class="emblema-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 2l3 7h7l-5.5 4.5L18 22l-6-4.5L6 22l1.5-8.5L2 9h7z"/>
+      </svg>
+    </span>
+    <span class="emblema-nome">Método <em>Chefe</em></span>
+  </a>
+  <nav>
+    <a href="#painel" class="nav-link active" data-tab="painel">Painel</a>
+    <a href="#sessoes" class="nav-link" data-tab="sessoes">Sessões</a>
+    <a href="#tcs" class="nav-link" data-tab="tcs">TCs</a>
+    <a href="#questoes" class="nav-link" data-tab="questoes">Questões</a>
+    <a href="#" class="nav-link" id="btnSair">Sair</a>
+  </nav>
+</header>
+
+<main class="shell">
+  <!-- Cabeçalho do aluno -->
+  <section class="panel panel-body" style="margin-bottom:1.5rem;">
+    <div class="row between wrap">
+      <div>
+        <div class="kicker">Bem-vindo de volta</div>
+        <h1 class="panel-title" style="font-size:1.8rem; margin-top:.25rem;" id="boasVindas">Soldado</h1>
+        <div class="row wrap mt-2" id="perfilChips"></div>
+      </div>
+      <div class="row">
+        <div class="stat" style="min-width:140px;">
+          <div class="stat-kicker">Hoje</div>
+          <div class="stat-value" id="statHoje">0h</div>
+          <div class="stat-sub">minutos estudados</div>
+        </div>
+        <div class="stat" style="min-width:140px;">
+          <div class="stat-kicker">Semana</div>
+          <div class="stat-value" id="statSemana">0h</div>
+          <div class="stat-sub">últimos 7 dias</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABA: PAINEL -->
+  <section data-painel="painel">
+    <div class="grid grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Registrar sessão de estudo</h2>
+        </div>
+        <div class="panel-body">
+          <form id="formSessao">
+            <div class="field">
+              <label for="sMateria">Matéria</label>
+              <select class="select" id="sMateria" required></select>
+            </div>
+            <div class="field">
+              <label for="sTopico">Tópico</label>
+              <input class="input" id="sTopico" placeholder="Ex.: Geometria analítica — cônicas" />
+            </div>
+            <div class="grid grid-2" style="gap:1rem;">
+              <div class="field">
+                <label for="sDuracao">Duração (minutos)</label>
+                <input class="input" id="sDuracao" type="number" min="1" required />
+              </div>
+              <div class="field">
+                <label for="sData">Data</label>
+                <input class="input" id="sData" type="date" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="sObs">Observações</label>
+              <textarea class="textarea" id="sObs" placeholder="Dúvidas, dificuldades, recados..."></textarea>
+            </div>
+            <button class="btn" type="submit">Registrar sessão</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">TCs pendentes</h2>
+          <a href="#tcs" class="btn btn-ghost btn-sm" data-tab="tcs">Ver todas</a>
+        </div>
+        <div class="panel-body" id="listaTcsPendentes">
+          <p class="muted small">Carregando...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABA: SESSOES -->
+  <section data-painel="sessoes" class="hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Histórico de sessões</h2>
+      </div>
+      <div class="panel-body" style="padding:0;">
+        <div style="overflow-x:auto;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Data</th><th>Matéria</th><th>Tópico</th><th>Duração</th><th>Obs.</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="tbodySessoes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABA: TCs -->
+  <section data-painel="tcs" class="hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Tarefas de Casa</h2>
+        <div class="row">
+          <button class="btn btn-ghost btn-sm" data-filtro-tc="todas">Todas</button>
+          <button class="btn btn-ghost btn-sm" data-filtro-tc="pendente">Pendentes</button>
+          <button class="btn btn-ghost btn-sm" data-filtro-tc="concluida">Concluídas</button>
+        </div>
+      </div>
+      <div class="panel-body" id="listaTcs"></div>
+    </div>
+  </section>
+
+  <!-- ABA: QUESTOES -->
+  <section data-painel="questoes" class="hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Banco de questões</h2>
+      </div>
+      <div class="panel-body">
+        <div class="grid grid-3" style="margin-bottom:1rem;">
+          <div class="field" style="margin:0;">
+            <label>Matéria</label>
+            <select class="select" id="qfMateria"><option value="">Todas</option></select>
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Dificuldade</label>
+            <select class="select" id="qfDif">
+              <option value="">Todas</option>
+              <option value="facil">Fácil</option>
+              <option value="medio">Médio</option>
+              <option value="dificil">Difícil</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Fonte / prova</label>
+            <input class="input" id="qfFonte" placeholder="Ex.: EsPCEx, OBM..." />
+          </div>
+        </div>
+        <div id="listaQuestoes"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/aluno.js"></script>
+</body>
+</html>
