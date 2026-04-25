@@ -32,6 +32,13 @@ function inicializar() {
     qfMat.insertAdjacentHTML('beforeend', `<option>${m}</option>`);
   });
 
+  // Filtros estruturados do banco de questões
+  window.popularSelectInstituicoes(document.getElementById('qfInstituicao'), true, 'Todas');
+  const qfEsc = document.getElementById('qfEscolaridade');
+  window.ESCOLARIDADES_QUESTAO.forEach(e => qfEsc.insertAdjacentHTML('beforeend', `<option>${e}</option>`));
+  const qfNivel = document.getElementById('qfNivel');
+  window.NIVEIS.forEach(n => qfNivel.insertAdjacentHTML('beforeend', `<option value="${n.v}">${n.label}</option>`));
+
   // Data atual
   document.getElementById('sData').value = new Date().toISOString().slice(0, 10);
 
@@ -59,10 +66,10 @@ function inicializar() {
   });
 
   // Filtros questões
-  ['qfMateria', 'qfDif', 'qfFonte'].forEach(id => {
+  ['qfMateria', 'qfDif', 'qfInstituicao', 'qfEscolaridade', 'qfNivel'].forEach(id => {
     document.getElementById(id).addEventListener('change', carregarQuestoes);
   });
-  document.getElementById('qfFonte').addEventListener('input', debounce(carregarQuestoes, 300));
+  document.getElementById('qfAssunto').addEventListener('input', debounce(carregarQuestoes, 300));
 
   // Carregas iniciais
   carregarStats();
@@ -228,13 +235,19 @@ window.marcarTC = async function (id, status) {
 
 // ---------- QUESTÕES ----------
 async function carregarQuestoes() {
-  let q = window.db.from('questoes').select('*').order('created_at', { ascending: false }).limit(50);
+  let q = window.db.from('questoes').select('*').order('created_at', { ascending: false }).limit(80);
   const mat = document.getElementById('qfMateria').value;
   const dif = document.getElementById('qfDif').value;
-  const fonte = document.getElementById('qfFonte').value.trim();
+  const inst = document.getElementById('qfInstituicao').value;
+  const esc = document.getElementById('qfEscolaridade').value;
+  const nivel = document.getElementById('qfNivel').value;
+  const assunto = document.getElementById('qfAssunto').value.trim();
   if (mat) q = q.eq('materia', mat);
   if (dif) q = q.eq('dificuldade', dif);
-  if (fonte) q = q.ilike('fonte', `%${fonte}%`);
+  if (inst) q = q.eq('instituicao', inst);
+  if (esc) q = q.eq('escolaridade', esc);
+  if (nivel) q = q.eq('nivel', parseInt(nivel));
+  if (assunto) q = q.ilike('assunto', `%${assunto}%`);
   const { data, error } = await q;
   const el = document.getElementById('listaQuestoes');
   if (error) { el.innerHTML = `<p class="muted">${error.message}</p>`; return; }
@@ -464,7 +477,9 @@ function cardQuestao(q) {
       <div class="row wrap" style="gap:.4rem; margin-bottom:.6rem;">
         <span class="chip gold">${escapeHtml(q.materia)}</span>
         ${q.assunto ? `<span class="chip">${escapeHtml(q.assunto)}</span>` : ''}
-        ${q.fonte ? `<span class="chip">${escapeHtml(q.fonte)}${q.ano ? ' · ' + q.ano : ''}</span>` : ''}
+        ${q.instituicao ? `<span class="chip gold">${escapeHtml(q.instituicao)}${q.ano ? ' · ' + q.ano : ''}</span>` : (q.fonte ? `<span class="chip">${escapeHtml(q.fonte)}</span>` : '')}
+        ${q.nivel ? `<span class="chip">Nível ${q.nivel}</span>` : ''}
+        ${q.escolaridade ? `<span class="chip">${escapeHtml(q.escolaridade)}</span>` : ''}
         ${q.dificuldade ? `<span class="chip ${q.dificuldade === 'dificil' ? 'danger' : q.dificuldade === 'medio' ? 'warn' : 'ok'}">${q.dificuldade}</span>` : ''}
       </div>
       <div style="white-space:pre-wrap; margin-bottom:.6rem;">${escapeHtml(q.enunciado)}</div>

@@ -144,6 +144,22 @@
               <select class="select" id="aqfMateria"><option value="">Todas</option></select>
             </div>
             <div class="field" style="margin:0;">
+              <label>Assunto</label>
+              <input class="input" id="aqfAssunto" placeholder="Ex.: cônicas, trigonometria..." />
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Instituição</label>
+              <select class="select" id="aqfInstituicao"></select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Escolaridade</label>
+              <select class="select" id="aqfEscolaridade"><option value="">Todas</option></select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Nível</label>
+              <select class="select" id="aqfNivel"><option value="">Todos</option></select>
+            </div>
+            <div class="field" style="margin:0;">
               <label>Dificuldade</label>
               <select class="select" id="aqfDif">
                 <option value="">Todas</option>
@@ -151,10 +167,6 @@
                 <option value="medio">Médio</option>
                 <option value="dificil">Difícil</option>
               </select>
-            </div>
-            <div class="field" style="margin:0;">
-              <label>Fonte / prova</label>
-              <input class="input" id="aqfFonte" placeholder="Ex.: EsPCEx, OBM..." />
             </div>
           </div>
           <div id="listaQuestoesAdmin"></div>
@@ -319,24 +331,40 @@
             <input class="input" id="qAssunto" placeholder="Ex.: Cônicas" />
           </div>
         </div>
-        <div class="grid grid-3" style="gap:1rem;">
+        <div class="grid grid-2" style="gap:1rem;">
           <div class="field">
-            <label for="qDif">Dificuldade</label>
-            <select class="select" id="qDif">
-              <option value="">—</option>
-              <option value="facil">Fácil</option>
-              <option value="medio">Médio</option>
-              <option value="dificil">Difícil</option>
-            </select>
+            <label for="qInstituicao">Instituição / Prova</label>
+            <select class="select" id="qInstituicao"></select>
           </div>
           <div class="field">
-            <label for="qFonte">Fonte</label>
-            <input class="input" id="qFonte" placeholder="EsPCEx, OBM..." />
+            <label for="qFonte">Fonte (texto livre)</label>
+            <input class="input" id="qFonte" placeholder="Ex.: EsPCEx 2023 - Q12" />
+          </div>
+        </div>
+
+        <div class="grid grid-3" style="gap:1rem;">
+          <div class="field">
+            <label for="qEscolaridade">Escolaridade</label>
+            <select class="select" id="qEscolaridade"></select>
+          </div>
+          <div class="field">
+            <label for="qNivel">Nível</label>
+            <select class="select" id="qNivel"></select>
           </div>
           <div class="field">
             <label for="qAno">Ano</label>
             <input class="input" id="qAno" type="number" min="1950" max="2100" />
           </div>
+        </div>
+
+        <div class="field">
+          <label for="qDif">Dificuldade</label>
+          <select class="select" id="qDif">
+            <option value="">—</option>
+            <option value="facil">Fácil</option>
+            <option value="medio">Médio</option>
+            <option value="dificil">Difícil</option>
+          </select>
         </div>
         <div class="field">
           <label>Alternativas <span class="muted small">(deixe em branco se for dissertativa)</span></label>

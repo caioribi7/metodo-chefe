@@ -32,6 +32,23 @@ function inicializar() {
     window.MATERIAS.forEach(m => el.insertAdjacentHTML('beforeend', `<option>${m}</option>`));
   });
 
+  // Selects do modal de questão
+  const qInst = document.getElementById('qInstituicao');
+  window.popularSelectInstituicoes(qInst, true, '— Sem instituição');
+  const qEsc = document.getElementById('qEscolaridade');
+  qEsc.innerHTML = '<option value="">—</option>';
+  window.ESCOLARIDADES_QUESTAO.forEach(e => qEsc.insertAdjacentHTML('beforeend', `<option>${e}</option>`));
+  const qNivel = document.getElementById('qNivel');
+  qNivel.innerHTML = '<option value="">—</option>';
+  window.NIVEIS.forEach(n => qNivel.insertAdjacentHTML('beforeend', `<option value="${n.v}">${n.label}</option>`));
+
+  // Selects de filtros do banco de questões
+  window.popularSelectInstituicoes(document.getElementById('aqfInstituicao'), true, 'Todas');
+  const aqfEsc = document.getElementById('aqfEscolaridade');
+  window.ESCOLARIDADES_QUESTAO.forEach(e => aqfEsc.insertAdjacentHTML('beforeend', `<option>${e}</option>`));
+  const aqfNivel = document.getElementById('aqfNivel');
+  window.NIVEIS.forEach(n => aqfNivel.insertAdjacentHTML('beforeend', `<option value="${n.v}">${n.label}</option>`));
+
   // Tabs
   document.querySelectorAll('[data-tab]').forEach(a => {
     a.addEventListener('click', e => {
@@ -59,8 +76,9 @@ function inicializar() {
     b.addEventListener('click', () => carregarTcsAdmin(b.dataset.filtroTc));
   });
 
-  ['aqfMateria', 'aqfDif'].forEach(id => document.getElementById(id).addEventListener('change', carregarQuestoesAdmin));
-  document.getElementById('aqfFonte').addEventListener('input', debounce(carregarQuestoesAdmin, 300));
+  ['aqfMateria', 'aqfDif', 'aqfInstituicao', 'aqfEscolaridade', 'aqfNivel']
+    .forEach(id => document.getElementById(id).addEventListener('change', carregarQuestoesAdmin));
+  document.getElementById('aqfAssunto').addEventListener('input', debounce(carregarQuestoesAdmin, 300));
 
   // Acervo
   document.getElementById('formPasta').addEventListener('submit', salvarPasta);
@@ -297,10 +315,16 @@ async function carregarQuestoesAdmin() {
   let q = window.db.from('questoes').select('*').order('created_at', { ascending: false });
   const mat = document.getElementById('aqfMateria').value;
   const dif = document.getElementById('aqfDif').value;
-  const fonte = document.getElementById('aqfFonte').value.trim();
+  const inst = document.getElementById('aqfInstituicao').value;
+  const esc = document.getElementById('aqfEscolaridade').value;
+  const nivel = document.getElementById('aqfNivel').value;
+  const assunto = document.getElementById('aqfAssunto').value.trim();
   if (mat) q = q.eq('materia', mat);
   if (dif) q = q.eq('dificuldade', dif);
-  if (fonte) q = q.ilike('fonte', `%${fonte}%`);
+  if (inst) q = q.eq('instituicao', inst);
+  if (esc) q = q.eq('escolaridade', esc);
+  if (nivel) q = q.eq('nivel', parseInt(nivel));
+  if (assunto) q = q.ilike('assunto', `%${assunto}%`);
   const { data, error } = await q;
   const el = document.getElementById('listaQuestoesAdmin');
   if (error) { el.innerHTML = `<p class="muted">${error.message}</p>`; return; }
@@ -310,7 +334,9 @@ async function carregarQuestoesAdmin() {
       <div class="row wrap" style="gap:.4rem; margin-bottom:.5rem;">
         <span class="chip gold">${escapeHtml(q.materia)}</span>
         ${q.assunto ? `<span class="chip">${escapeHtml(q.assunto)}</span>` : ''}
-        ${q.fonte ? `<span class="chip">${escapeHtml(q.fonte)}${q.ano ? ' · ' + q.ano : ''}</span>` : ''}
+        ${q.instituicao ? `<span class="chip gold">${escapeHtml(q.instituicao)}${q.ano ? ' · ' + q.ano : ''}</span>` : (q.fonte ? `<span class="chip">${escapeHtml(q.fonte)}</span>` : '')}
+        ${q.nivel ? `<span class="chip">Nível ${q.nivel}</span>` : ''}
+        ${q.escolaridade ? `<span class="chip">${escapeHtml(q.escolaridade)}</span>` : ''}
         ${q.dificuldade ? `<span class="chip ${q.dificuldade === 'dificil' ? 'danger' : q.dificuldade === 'medio' ? 'warn' : 'ok'}">${q.dificuldade}</span>` : ''}
         ${q.imagem_url ? '<span class="chip">📷 enunciado</span>' : ''}
         ${q.imagem_resolucao_url ? '<span class="chip">📷 resolução</span>' : ''}
@@ -341,6 +367,9 @@ window.abrirModalQuestao = function (q) {
     document.getElementById('qDif').value = q.dificuldade || '';
     document.getElementById('qFonte').value = q.fonte || '';
     document.getElementById('qAno').value = q.ano || '';
+    document.getElementById('qInstituicao').value = q.instituicao || '';
+    document.getElementById('qEscolaridade').value = q.escolaridade || '';
+    document.getElementById('qNivel').value = q.nivel || '';
     document.getElementById('qResp').value = q.resposta_correta || '';
     document.getElementById('qResol').value = q.resolucao || '';
     const alts = q.alternativas || {};
@@ -459,6 +488,9 @@ async function salvarQuestao(e) {
       dificuldade: document.getElementById('qDif').value || null,
       fonte: document.getElementById('qFonte').value.trim() || null,
       ano: document.getElementById('qAno').value ? parseInt(document.getElementById('qAno').value) : null,
+      instituicao: document.getElementById('qInstituicao').value || null,
+      escolaridade: document.getElementById('qEscolaridade').value || null,
+      nivel: document.getElementById('qNivel').value ? parseInt(document.getElementById('qNivel').value) : null,
       alternativas: Object.keys(alts).length ? alts : null,
       resposta_correta: document.getElementById('qResp').value.trim() || null,
       resolucao: document.getElementById('qResol').value.trim() || null,

@@ -56,10 +56,15 @@ create table if not exists public.questoes (
   resolucao text,
   imagem_url text,
   imagem_resolucao_url text,
+  escolaridade text,
+  nivel int check (nivel is null or nivel between 1 and 4),
+  instituicao text,
   tags text[] default '{}',
   created_at timestamptz default now()
 );
 create index if not exists idx_questoes_filtros on public.questoes(materia, dificuldade);
+create index if not exists idx_questoes_inst on public.questoes(instituicao);
+create index if not exists idx_questoes_nivel on public.questoes(nivel);
 
 -- ---------- 4.1) STORAGE: bucket de imagens das questões ----------
 insert into storage.buckets (id, name, public)

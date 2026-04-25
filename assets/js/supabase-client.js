@@ -128,3 +128,96 @@ window.LABEL_TIPO = {
   pasta: 'Pasta', curso: 'Curso', pdf: 'PDF',
   video: 'Vídeo-aula', dica: 'Dica', lista: 'Lista'
 };
+
+// --------- Banco de questões: escolaridade / níveis / instituições ----------
+
+window.ESCOLARIDADES_QUESTAO = [
+  'Fundamental II',
+  'Ensino Médio',
+  'Pré-militar / Vestibular',
+  'Universitário'
+];
+
+// Níveis estilo OBMEP
+window.NIVEIS = [
+  { v: 1, label: 'Nível 1 — 6º ao 7º ano' },
+  { v: 2, label: 'Nível 2 — 8º ao 9º ano' },
+  { v: 3, label: 'Nível 3 — Ensino Médio' },
+  { v: 4, label: 'Nível 4 — Universitário' },
+];
+
+// Instituições agrupadas (provas militares + olimpíadas de matemática + outras)
+window.INSTITUICOES_GRUPOS = {
+  'Provas Militares': [
+    'EsPCEx', 'AFA', 'Escola Naval', 'EFOMM', 'ITA', 'IME',
+    'EEAR', 'EsSA', 'Colégio Naval', 'EPCAr', 'CFN', 'CFO'
+  ],
+  'Olimpíadas de Matemática': [
+    'OBM', 'OBMEP', 'Canguru de Matemática', 'OPM (Paulista)',
+    'OMERJ', 'OMESP', 'OCM (Cearense)', 'OMA', 'OIbM (Ibero-americana)',
+    'IMO (Internacional)', 'OMM', 'Cone Sul'
+  ],
+  'Olimpíadas Científicas': [
+    'OBF (Física)', 'OBQ (Química)', 'OBB (Biologia)', 'OBI (Informática)',
+    'ONC (Ciências)', 'OBA (Astronomia)', 'OBR (Robótica)',
+    'ONHB (História)', 'OPF', 'OPQ'
+  ],
+};
+
+// Lista plana, útil pra busca/inclusão simples
+window.INSTITUICOES_TODAS = Object.values(window.INSTITUICOES_GRUPOS).flat();
+
+// --------- Menu mobile (hambúrguer) ----------
+// Adiciona automaticamente um botão hamburger na .navbar em telas pequenas
+document.addEventListener('DOMContentLoaded', () => {
+  const navbar = document.querySelector('.navbar');
+  if (!navbar) return;
+  const nav = navbar.querySelector('nav');
+  if (!nav || navbar.querySelector('.menu-toggle')) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'menu-toggle';
+  btn.setAttribute('aria-label', 'Abrir menu');
+  btn.innerHTML = '<span></span><span></span><span></span>';
+  navbar.appendChild(btn);
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    nav.classList.toggle('open');
+    btn.classList.toggle('open');
+  });
+
+  // fecha ao clicar em link ou fora
+  nav.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A') {
+      nav.classList.remove('open');
+      btn.classList.remove('open');
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (!navbar.contains(e.target)) {
+      nav.classList.remove('open');
+      btn.classList.remove('open');
+    }
+  });
+});
+
+// Popula um <select> com optgroups
+window.popularSelectInstituicoes = function (selectEl, incluirVazio = true, valorVazio = 'Todas') {
+  selectEl.innerHTML = '';
+  if (incluirVazio) {
+    const o = document.createElement('option');
+    o.value = ''; o.textContent = valorVazio;
+    selectEl.appendChild(o);
+  }
+  Object.entries(window.INSTITUICOES_GRUPOS).forEach(([grupo, lista]) => {
+    const og = document.createElement('optgroup');
+    og.label = grupo;
+    lista.forEach(item => {
+      const o = document.createElement('option');
+      o.value = item; o.textContent = item;
+      og.appendChild(o);
+    });
+    selectEl.appendChild(og);
+  });
+};
