@@ -62,12 +62,24 @@ function inicializar() {
   ['aqfMateria', 'aqfDif'].forEach(id => document.getElementById(id).addEventListener('change', carregarQuestoesAdmin));
   document.getElementById('aqfFonte').addEventListener('input', debounce(carregarQuestoesAdmin, 300));
 
+  // Acervo
+  document.getElementById('formPasta').addEventListener('submit', salvarPasta);
+  document.getElementById('formMaterial').addEventListener('submit', salvarMaterial);
+  document.getElementById('mArquivo')?.addEventListener('change', () => {
+    document.getElementById('mUrlExterna').value = '';
+  });
+
+  // Ciclo
+  document.getElementById('cicloAluno').addEventListener('change', carregarCicloAluno);
+  document.getElementById('btnSalvarCiclo').addEventListener('click', salvarCiclo);
+
   // Carregar tudo
   carregarStats();
   carregarAlunos();
   carregarTcsAdmin('todas');
   carregarQuestoesAdmin();
   carregarFeedRecente();
+  navegarPasta(null);
 }
 
 function trocarAba(nome) {
@@ -101,6 +113,15 @@ async function carregarAlunos() {
   const selTC = document.getElementById('tcAluno');
   selTC.innerHTML = '<option value="">Selecione o aluno...</option>';
   data.forEach(a => selTC.insertAdjacentHTML('beforeend', `<option value="${a.id}">${escapeHtml(a.nome)}</option>`));
+
+  // Seletor de aluno no ciclo
+  const selCiclo = document.getElementById('cicloAluno');
+  if (selCiclo) {
+    const atual = selCiclo.value;
+    selCiclo.innerHTML = '<option value="">Selecione...</option>';
+    data.forEach(a => selCiclo.insertAdjacentHTML('beforeend', `<option value="${a.id}">${escapeHtml(a.nome)}</option>`));
+    if (atual) selCiclo.value = atual;
+  }
 
   // Horas de estudo dos últimos 7 dias
   const seteAtras = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
@@ -477,3 +498,436 @@ window.excluirQuestao = async function (id) {
   carregarStats();
   carregarQuestoesAdmin();
 };
+
+// ==========================================================
+// ACERVO
+// ==========================================================
+let PASTA_ATUAL = null;             // id da pasta corrente (null = raiz)
+let CAMINHO_PASTAS = [];            // breadcrumb [{id, nome}, ...]
+const MAX_PDF_BYTES = 30 * 1024 * 1024;
+
+async function navegarPasta(pastaId) {
+  PASTA_ATUAL = pastaId;
+  if (pastaId === null) CAMINHO_PASTAS = [];
+  else {
+    // monta caminho buscando ancestrais
+    CAMINHO_PASTAS = [];
+    let atual = pastaId;
+    while (atual) {
+      const { data } = await window.db.from('pastas').select('id, nome, parent_id').eq('id', atual).single();
+      if (!data) break;
+      CAMINHO_PASTAS.unshift({ id: data.id, nome: data.nome });
+      atual = data.parent_id;
+    }
+  }
+  renderizarBreadcrumb();
+  await renderizarConteudoAcervo();
+}
+window.navegarPasta = navegarPasta;
+
+function renderizarBreadcrumb() {
+  const el = document.getElementById('breadcrumbAdmin');
+  if (!el) return;
+  let html = `<a href="#" onclick="navegarPasta(null); return false;">Raiz</a>`;
+  CAMINHO_PASTAS.forEach((p, i) => {
+    const ultimo = i === CAMINHO_PASTAS.length - 1;
+    html += ` <span class="sep">›</span> `;
+    html += ultimo
+      ? `<span class="atual">${escapeHtml(p.nome)}</span>`
+      : `<a href="#" onclick="navegarPasta('${p.id}'); return false;">${escapeHtml(p.nome)}</a>`;
+  });
+  el.innerHTML = html;
+}
+
+async function renderizarConteudoAcervo() {
+  const el = document.getElementById('acervoConteudoAdmin');
+  el.innerHTML = '<p class="muted small">Carregando...</p>';
+  const filtroPasta = PASTA_ATUAL ? { eq: PASTA_ATUAL } : { is: null };
+  const [{ data: pastas }, { data: mats }] = await Promise.all([
+    PASTA_ATUAL
+      ? window.db.from('pastas').select('*').eq('parent_id', PASTA_ATUAL).order('ordem').order('nome')
+      : window.db.from('pastas').select('*').is('parent_id', null).order('ordem').order('nome'),
+    PASTA_ATUAL
+      ? window.db.from('materiais').select('*').eq('pasta_id', PASTA_ATUAL).order('ordem').order('created_at')
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const cards = [];
+  (pastas || []).forEach(p => {
+    cards.push(`
+      <div class="acervo-card" onclick="navegarPasta('${p.id}')">
+        <div class="ac-actions">
+          <button onclick="event.stopPropagation(); editarPasta('${p.id}')" title="Editar">✎</button>
+          <button class="danger" onclick="event.stopPropagation(); excluirPasta('${p.id}')" title="Excluir">×</button>
+        </div>
+        <div class="ac-icon">${window.iconeMat(p.tipo)}</div>
+        <div class="ac-meta">${p.tipo === 'curso' ? 'Curso' : 'Pasta'}</div>
+        <div class="ac-titulo">${escapeHtml(p.nome)}</div>
+        ${p.descricao ? `<div class="muted small">${escapeHtml(p.descricao)}</div>` : ''}
+      </div>
+    `);
+  });
+  (mats || []).forEach(m => {
+    cards.push(`
+      <div class="acervo-card" onclick='abrirMaterialAdmin(${JSON.stringify(m).replace(/'/g, "&#39;")})'>
+        <div class="ac-actions">
+          <button onclick="event.stopPropagation(); editarMaterial('${m.id}')" title="Editar">✎</button>
+          <button class="danger" onclick="event.stopPropagation(); excluirMaterial('${m.id}')" title="Excluir">×</button>
+        </div>
+        <div class="ac-icon">${window.iconeMat(m.tipo)}</div>
+        <div class="ac-meta">${window.LABEL_TIPO[m.tipo]}</div>
+        <div class="ac-titulo">${escapeHtml(m.titulo)}</div>
+        ${m.descricao ? `<div class="muted small">${escapeHtml(m.descricao.slice(0, 90))}${m.descricao.length > 90 ? '...' : ''}</div>` : ''}
+      </div>
+    `);
+  });
+
+  if (!cards.length) {
+    el.innerHTML = '<p class="muted">Esta pasta está vazia. Use os botões acima para adicionar pastas, cursos ou materiais.</p>';
+  } else {
+    el.innerHTML = `<div class="acervo-grid">${cards.join('')}</div>`;
+  }
+}
+
+window.abrirMaterialAdmin = function (m) {
+  abrirVisualizadorMaterial(m);
+};
+
+// ----- Modal pasta/curso -----
+window.abrirModalPasta = function (tipo, dados = null) {
+  document.getElementById('modalPasta').classList.remove('hidden');
+  document.getElementById('formPasta').reset();
+  document.getElementById('pTipo').value = tipo;
+  if (dados) {
+    document.getElementById('pId').value = dados.id;
+    document.getElementById('pNome').value = dados.nome;
+    document.getElementById('pDesc').value = dados.descricao || '';
+    document.getElementById('modalPastaTitulo').textContent =
+      'Editar ' + (dados.tipo === 'curso' ? 'curso' : 'pasta');
+  } else {
+    document.getElementById('pId').value = '';
+    document.getElementById('modalPastaTitulo').textContent =
+      'Nova ' + (tipo === 'curso' ? 'curso' : 'pasta');
+  }
+};
+window.fecharModalPasta = function () {
+  document.getElementById('modalPasta').classList.add('hidden');
+};
+async function salvarPasta(e) {
+  e.preventDefault();
+  const id = document.getElementById('pId').value;
+  const payload = {
+    nome: document.getElementById('pNome').value.trim(),
+    descricao: document.getElementById('pDesc').value.trim() || null,
+    tipo: document.getElementById('pTipo').value,
+    parent_id: PASTA_ATUAL,
+  };
+  const req = id
+    ? window.db.from('pastas').update(payload).eq('id', id)
+    : window.db.from('pastas').insert(payload);
+  const { error } = await req;
+  if (error) { toast(error.message, 'err'); return; }
+  toast(id ? 'Pasta atualizada.' : 'Pasta criada.', 'ok');
+  fecharModalPasta();
+  renderizarConteudoAcervo();
+}
+window.editarPasta = async function (id) {
+  const { data } = await window.db.from('pastas').select('*').eq('id', id).single();
+  if (data) abrirModalPasta(data.tipo, data);
+};
+window.excluirPasta = async function (id) {
+  if (!confirm('Excluir esta pasta e TUDO que houver dentro dela?')) return;
+  const paths = await coletarArquivosDescendentes(id);
+  if (paths.length) await window.db.storage.from('acervo').remove(paths);
+  const { error } = await window.db.from('pastas').delete().eq('id', id);
+  if (error) { toast(error.message, 'err'); return; }
+  toast('Pasta excluída.', 'ok');
+  renderizarConteudoAcervo();
+};
+
+async function coletarArquivosDescendentes(pastaId) {
+  // Coleta paths de PDFs do storage para limpar antes de apagar a pasta
+  const paths = [];
+  const fila = [pastaId];
+  while (fila.length) {
+    const id = fila.shift();
+    const { data: subs } = await window.db.from('pastas').select('id').eq('parent_id', id);
+    (subs || []).forEach(s => fila.push(s.id));
+    const { data: mats } = await window.db.from('materiais').select('url').eq('pasta_id', id);
+    (mats || []).forEach(m => {
+      const p = pathStorageAcervo(m.url);
+      if (p) paths.push(p);
+    });
+  }
+  return paths;
+}
+function pathStorageAcervo(url) {
+  if (!url) return null;
+  const marc = '/storage/v1/object/public/acervo/';
+  const i = url.indexOf(marc);
+  return i >= 0 ? url.slice(i + marc.length) : null;
+}
+
+// ----- Modal material -----
+window.abrirModalMaterial = function (tipo, dados = null) {
+  document.getElementById('modalMaterial').classList.remove('hidden');
+  document.getElementById('formMaterial').reset();
+  document.getElementById('mTipo').value = tipo;
+
+  ['campoArquivo', 'campoVideo', 'campoDica'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById('mArquivoAtual').classList.add('hidden');
+  document.getElementById('mArquivoAtual').textContent = '';
+
+  if (tipo === 'pdf' || tipo === 'lista') document.getElementById('campoArquivo').classList.remove('hidden');
+  if (tipo === 'video') document.getElementById('campoVideo').classList.remove('hidden');
+  if (tipo === 'dica') document.getElementById('campoDica').classList.remove('hidden');
+
+  document.getElementById('modalMaterialTitulo').textContent =
+    (dados ? 'Editar ' : 'Novo ') + window.LABEL_TIPO[tipo].toLowerCase();
+
+  if (dados) {
+    document.getElementById('mId').value = dados.id;
+    document.getElementById('mTitulo').value = dados.titulo;
+    document.getElementById('mDesc').value = dados.descricao || '';
+    if (tipo === 'video') document.getElementById('mUrlVideo').value = dados.url || '';
+    if (tipo === 'pdf' || tipo === 'lista') {
+      // Se url for do storage, mostra como "atual"; se externa, vai pro campo de URL externa
+      if (dados.url && pathStorageAcervo(dados.url)) {
+        const lbl = document.getElementById('mArquivoAtual');
+        lbl.textContent = 'Arquivo atual mantido se você não enviar outro.';
+        lbl.classList.remove('hidden');
+      } else if (dados.url) {
+        document.getElementById('mUrlExterna').value = dados.url;
+      }
+    }
+    if (tipo === 'dica') document.getElementById('mConteudo').value = dados.conteudo || '';
+  } else {
+    document.getElementById('mId').value = '';
+  }
+};
+window.fecharModalMaterial = function () {
+  document.getElementById('modalMaterial').classList.add('hidden');
+};
+
+async function salvarMaterial(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btnSalvarMaterial');
+  btn.disabled = true; const txt = btn.textContent; btn.textContent = 'Salvando...';
+  try {
+    const tipo = document.getElementById('mTipo').value;
+    const id = document.getElementById('mId').value;
+    const payload = {
+      pasta_id: PASTA_ATUAL,
+      tipo,
+      titulo: document.getElementById('mTitulo').value.trim(),
+      descricao: document.getElementById('mDesc').value.trim() || null,
+      url: null,
+      conteudo: null,
+    };
+
+    if (tipo === 'video') {
+      payload.url = document.getElementById('mUrlVideo').value.trim() || null;
+    } else if (tipo === 'dica') {
+      payload.conteudo = document.getElementById('mConteudo').value.trim() || null;
+    } else if (tipo === 'pdf' || tipo === 'lista') {
+      const file = document.getElementById('mArquivo').files[0];
+      const urlExterna = document.getElementById('mUrlExterna').value.trim();
+      if (file) {
+        if (file.size > MAX_PDF_BYTES) throw new Error('Arquivo maior que 30MB.');
+        // Apaga o anterior se for do storage
+        if (id) {
+          const { data: ant } = await window.db.from('materiais').select('url').eq('id', id).single();
+          const oldP = pathStorageAcervo(ant?.url);
+          if (oldP) await window.db.storage.from('acervo').remove([oldP]);
+        }
+        const ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
+        const path = `${tipo}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await window.db.storage.from('acervo').upload(path, file, {
+          cacheControl: '3600', contentType: file.type
+        });
+        if (upErr) throw upErr;
+        const { data: pub } = window.db.storage.from('acervo').getPublicUrl(path);
+        payload.url = pub.publicUrl;
+      } else if (urlExterna) {
+        payload.url = urlExterna;
+      } else if (id) {
+        // Mantém URL antiga
+        const { data: ant } = await window.db.from('materiais').select('url').eq('id', id).single();
+        payload.url = ant?.url || null;
+      }
+    }
+
+    const req = id
+      ? window.db.from('materiais').update(payload).eq('id', id)
+      : window.db.from('materiais').insert(payload);
+    const { error } = await req;
+    if (error) throw error;
+    toast(id ? 'Material atualizado.' : 'Material salvo.', 'ok');
+    fecharModalMaterial();
+    renderizarConteudoAcervo();
+  } catch (err) {
+    toast('Erro: ' + (err.message || err), 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = txt;
+  }
+}
+window.editarMaterial = async function (id) {
+  const { data } = await window.db.from('materiais').select('*').eq('id', id).single();
+  if (data) abrirModalMaterial(data.tipo, data);
+};
+window.excluirMaterial = async function (id) {
+  if (!confirm('Excluir este material?')) return;
+  const { data } = await window.db.from('materiais').select('url').eq('id', id).single();
+  const p = pathStorageAcervo(data?.url);
+  if (p) await window.db.storage.from('acervo').remove([p]);
+  const { error } = await window.db.from('materiais').delete().eq('id', id);
+  if (error) { toast(error.message, 'err'); return; }
+  toast('Material excluído.', 'ok');
+  renderizarConteudoAcervo();
+};
+
+// Visualizador (compartilhado com o aluno)
+function abrirVisualizadorMaterial(m) {
+  let body = '';
+  if (m.tipo === 'video') {
+    body = window.embedVideo(m.url);
+  } else if (m.tipo === 'pdf' || m.tipo === 'lista') {
+    if (m.url) {
+      body = `<div class="player-wrap"><iframe src="${escapeHtml(m.url)}" allow="autoplay"></iframe></div>
+              <p class="mt-2"><a href="${escapeHtml(m.url)}" target="_blank">Abrir em nova aba ↗</a></p>`;
+    } else {
+      body = '<p class="muted">Sem arquivo associado.</p>';
+    }
+  } else if (m.tipo === 'dica') {
+    body = `<div style="white-space:pre-wrap; line-height:1.7;">${escapeHtml(m.conteudo || '')}</div>`;
+  }
+  const html = `
+    <div class="panel-head">
+      <h3 class="panel-title">${escapeHtml(m.titulo)}</h3>
+    </div>
+    <div class="panel-body">
+      <div class="row wrap" style="gap:.4rem; margin-bottom:.8rem;">
+        <span class="chip gold">${window.LABEL_TIPO[m.tipo]}</span>
+      </div>
+      ${m.descricao ? `<p class="muted">${escapeHtml(m.descricao)}</p>` : ''}
+      <div class="mt-2">${body}</div>
+    </div>
+  `;
+  abrirModalCustom(html);
+}
+window.abrirVisualizadorMaterial = abrirVisualizadorMaterial;
+
+// ==========================================================
+// CICLO DE ESTUDOS
+// ==========================================================
+async function carregarCicloAluno() {
+  const id = document.getElementById('cicloAluno').value;
+  const box = document.getElementById('cicloConfigBox');
+  const preview = document.getElementById('cicloPreview');
+  if (!id) {
+    box.classList.add('hidden');
+    preview.innerHTML = '<p class="muted small">Selecione um aluno para ver o progresso da semana.</p>';
+    return;
+  }
+  box.classList.remove('hidden');
+
+  const { data: metas } = await window.db.from('ciclo_metas').select('*').eq('aluno_id', id);
+  const mapa = {};
+  (metas || []).forEach(m => { mapa[m.materia] = m.minutos_semanais; });
+
+  const lista = document.getElementById('cicloConfigList');
+  lista.innerHTML = window.MATERIAS.map(m => {
+    const horas = ((mapa[m] || 0) / 60).toFixed(1).replace('.0', '');
+    return `
+      <div class="row" style="gap:.6rem; margin-bottom:.5rem;">
+        <span style="flex:1;">${escapeHtml(m)}</span>
+        <input class="input" type="number" min="0" step="0.5" data-materia="${escapeHtml(m)}"
+               value="${horas === '0' ? '' : horas}" placeholder="0" style="width:90px;" />
+        <span class="muted small">h/sem</span>
+      </div>
+    `;
+  }).join('');
+
+  await renderizarCicloPreview(id);
+}
+
+async function salvarCiclo() {
+  const id = document.getElementById('cicloAluno').value;
+  if (!id) return;
+  const inputs = document.querySelectorAll('#cicloConfigList input[data-materia]');
+  const linhas = [];
+  inputs.forEach(i => {
+    const horas = parseFloat(i.value) || 0;
+    linhas.push({
+      aluno_id: id,
+      materia: i.dataset.materia,
+      minutos_semanais: Math.round(horas * 60),
+    });
+  });
+  const { error } = await window.db
+    .from('ciclo_metas')
+    .upsert(linhas, { onConflict: 'aluno_id,materia' });
+  if (error) { toast(error.message, 'err'); return; }
+  toast('Ciclo salvo.', 'ok');
+  renderizarCicloPreview(id);
+}
+
+async function renderizarCicloPreview(alunoId) {
+  const inicio = window.inicioSemana();
+  const inicioISO = inicio.toISOString().slice(0, 10);
+
+  const [{ data: metas }, { data: sessoes }] = await Promise.all([
+    window.db.from('ciclo_metas').select('*').eq('aluno_id', alunoId),
+    window.db.from('sessoes_estudo').select('materia, duracao_minutos')
+      .eq('aluno_id', alunoId).gte('data_estudo', inicioISO),
+  ]);
+
+  const ativas = (metas || []).filter(m => m.minutos_semanais > 0);
+  const el = document.getElementById('cicloPreview');
+  if (!ativas.length) {
+    el.innerHTML = '<p class="muted small">Sem matérias com meta definida ainda.</p>';
+    return;
+  }
+  const acumulado = {};
+  (sessoes || []).forEach(s => { acumulado[s.materia] = (acumulado[s.materia] || 0) + s.duracao_minutos; });
+
+  el.innerHTML = ativas.map(m => renderCardCiclo(m, acumulado[m.materia] || 0, false)).join('');
+}
+
+function renderCardCiclo(meta, minutosFeitos, interativo) {
+  const total = meta.minutos_semanais;
+  const pct = Math.min(100, (minutosFeitos / total) * 100);
+  // Cada bolinha = 30 min
+  const totalBolinhas = Math.max(1, Math.ceil(total / 30));
+  const cheias = Math.floor(minutosFeitos / 30);
+  const minutoParcial = minutosFeitos % 30;
+  const completo = minutosFeitos >= total;
+
+  let bolinhas = '';
+  for (let i = 0; i < totalBolinhas; i++) {
+    if (i < cheias) bolinhas += '<div class="bolinha cheia"></div>';
+    else if (i === cheias && minutoParcial > 0) {
+      const p = (minutoParcial / 30) * 100;
+      bolinhas += `<div class="bolinha parcial" style="--p:${p}%"></div>`;
+    } else bolinhas += '<div class="bolinha"></div>';
+  }
+
+  const acoes = interativo ? `
+    <div class="ciclo-actions mt-2">
+      <button class="btn btn-sm" onclick="registroRapido('${escapeHtml(meta.materia)}', 30)">+30min</button>
+      <button class="btn btn-ghost btn-sm" onclick="registroRapido('${escapeHtml(meta.materia)}', 60)">+1h</button>
+    </div>` : '';
+
+  return `
+    <div class="ciclo-card ${completo ? 'completo' : ''}">
+      <div class="ciclo-head">
+        <span class="ciclo-materia">${escapeHtml(meta.materia)}</span>
+        <span class="ciclo-progresso">${window.fmtMin(minutosFeitos)} / ${window.fmtMin(total)}</span>
+      </div>
+      <div class="bolinhas">${bolinhas}</div>
+      <div class="ciclo-bar"><div style="width:${pct}%;"></div></div>
+      ${acoes}
+    </div>
+  `;
+}
+window.renderCardCiclo = renderCardCiclo;

@@ -25,6 +25,8 @@
     <a href="#alunos" class="nav-link" data-tab="alunos">Alunos</a>
     <a href="#tcs" class="nav-link" data-tab="tcs">TCs</a>
     <a href="#questoes" class="nav-link" data-tab="questoes">Questões</a>
+    <a href="#acervo" class="nav-link" data-tab="acervo">Acervo</a>
+    <a href="#ciclo" class="nav-link" data-tab="ciclo">Ciclo</a>
     <a href="#" class="nav-link" id="btnSair">Sair</a>
   </nav>
 </header>
@@ -160,7 +162,128 @@
       </div>
     </div>
   </section>
+
+  <!-- ACERVO -->
+  <section data-painel="acervo" class="hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="row wrap" style="gap:.6rem; flex:1;">
+          <h2 class="panel-title">Acervo de materiais</h2>
+          <div id="breadcrumbAdmin" class="breadcrumb" style="margin:0;"></div>
+        </div>
+        <div class="row wrap">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalPasta('pasta')">+ Pasta</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalPasta('curso')">+ Curso</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalMaterial('pdf')">+ PDF</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalMaterial('video')">+ Vídeo</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalMaterial('lista')">+ Lista</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalMaterial('dica')">+ Dica</button>
+        </div>
+      </div>
+      <div class="panel-body" id="acervoConteudoAdmin"></div>
+    </div>
+  </section>
+
+  <!-- CICLO -->
+  <section data-painel="ciclo" class="hidden">
+    <div class="grid grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">Configurar ciclo</h2></div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="cicloAluno">Aluno</label>
+            <select class="select" id="cicloAluno"><option value="">Selecione...</option></select>
+          </div>
+          <div id="cicloConfigBox" class="hidden">
+            <div class="kicker mt-2">Horas semanais por matéria</div>
+            <div id="cicloConfigList" class="mt-2"></div>
+            <button class="btn mt-2" id="btnSalvarCiclo">Salvar ciclo</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">Visão do ciclo do aluno</h2></div>
+        <div class="panel-body" id="cicloPreview"><p class="muted small">Selecione um aluno para ver o progresso da semana.</p></div>
+      </div>
+    </div>
+  </section>
 </main>
+
+<!-- Modal: criar/editar pasta ou curso -->
+<div id="modalPasta" class="modal-backdrop hidden" onclick="if(event.target===this) fecharModalPasta()">
+  <div class="modal panel">
+    <button class="modal-close" onclick="fecharModalPasta()">×</button>
+    <div class="panel-head"><h3 class="panel-title" id="modalPastaTitulo">Nova pasta</h3></div>
+    <div class="panel-body">
+      <form id="formPasta">
+        <input type="hidden" id="pId" />
+        <input type="hidden" id="pTipo" />
+        <div class="field">
+          <label for="pNome">Nome</label>
+          <input class="input" id="pNome" required placeholder="Ex.: Matemática · Cônicas" />
+        </div>
+        <div class="field">
+          <label for="pDesc">Descrição (opcional)</label>
+          <textarea class="textarea" id="pDesc"></textarea>
+        </div>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: criar/editar material -->
+<div id="modalMaterial" class="modal-backdrop hidden" onclick="if(event.target===this) fecharModalMaterial()">
+  <div class="modal panel">
+    <button class="modal-close" onclick="fecharModalMaterial()">×</button>
+    <div class="panel-head"><h3 class="panel-title" id="modalMaterialTitulo">Novo material</h3></div>
+    <div class="panel-body">
+      <form id="formMaterial">
+        <input type="hidden" id="mId" />
+        <input type="hidden" id="mTipo" />
+        <div class="field">
+          <label for="mTitulo">Título</label>
+          <input class="input" id="mTitulo" required />
+        </div>
+        <div class="field">
+          <label for="mDesc">Descrição</label>
+          <textarea class="textarea" id="mDesc"></textarea>
+        </div>
+
+        <!-- PDF / Lista: upload ou URL externa -->
+        <div id="campoArquivo" class="hidden">
+          <div class="field">
+            <label>Arquivo (PDF, até 30MB)</label>
+            <input type="file" id="mArquivo" accept="application/pdf" class="input" style="padding:.5rem;" />
+            <div id="mArquivoAtual" class="muted small mt-2 hidden"></div>
+          </div>
+          <div class="field">
+            <label for="mUrlExterna">Ou cole uma URL externa (Drive, Dropbox)</label>
+            <input class="input" id="mUrlExterna" placeholder="https://..." />
+          </div>
+        </div>
+
+        <!-- Vídeo: URL -->
+        <div id="campoVideo" class="hidden">
+          <div class="field">
+            <label for="mUrlVideo">URL do vídeo (YouTube, Vimeo, link direto)</label>
+            <input class="input" id="mUrlVideo" placeholder="https://www.youtube.com/watch?v=..." />
+          </div>
+        </div>
+
+        <!-- Dica: texto -->
+        <div id="campoDica" class="hidden">
+          <div class="field">
+            <label for="mConteudo">Texto da dica</label>
+            <textarea class="textarea" id="mConteudo" style="min-height:160px;" placeholder="Ex.: Como abordar uma questão de geometria espacial..."></textarea>
+          </div>
+        </div>
+
+        <button class="btn" type="submit" id="btnSalvarMaterial">Salvar</button>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- Modal nova/editar questão -->
 <div id="modalQuestao" class="modal-backdrop hidden" onclick="if(event.target===this) fecharModalQuestao()">

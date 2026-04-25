@@ -24,6 +24,8 @@
     <a href="#painel" class="nav-link active" data-tab="painel">Painel</a>
     <a href="#sessoes" class="nav-link" data-tab="sessoes">Sessões</a>
     <a href="#tcs" class="nav-link" data-tab="tcs">TCs</a>
+    <a href="#ciclo" class="nav-link" data-tab="ciclo">Ciclo</a>
+    <a href="#acervo" class="nav-link" data-tab="acervo">Acervo</a>
     <a href="#questoes" class="nav-link" data-tab="questoes">Questões</a>
     <a href="#" class="nav-link" id="btnSair">Sair</a>
   </nav>
@@ -134,6 +136,40 @@
         </div>
       </div>
       <div class="panel-body" id="listaTcs"></div>
+    </div>
+  </section>
+
+  <!-- ABA: CICLO -->
+  <section data-painel="ciclo" class="hidden">
+    <div class="panel" style="margin-bottom:1.2rem;">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Ciclo da semana</h2>
+          <div class="muted small mt-2" id="cicloPeriodo"></div>
+        </div>
+        <div class="row">
+          <div class="stat" style="min-width:160px;">
+            <div class="stat-kicker">Progresso geral</div>
+            <div class="stat-value" id="cicloPctGeral">0%</div>
+            <div class="stat-sub" id="cicloTotalGeral">0h / 0h</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <p class="muted small">Cada bolinha equivale a <strong>30 minutos</strong> estudados. Use o botão <strong>+30min</strong> ou <strong>+1h</strong> para registro rápido nessa matéria, ou registre uma sessão detalhada no Painel.</p>
+      </div>
+    </div>
+    <div id="cicloAlunoLista"></div>
+  </section>
+
+  <!-- ABA: ACERVO -->
+  <section data-painel="acervo" class="hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Acervo de materiais</h2>
+        <div id="breadcrumbAluno" class="breadcrumb" style="margin:0;"></div>
+      </div>
+      <div class="panel-body" id="acervoConteudoAluno"></div>
     </div>
   </section>
 

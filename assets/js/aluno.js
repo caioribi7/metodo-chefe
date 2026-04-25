@@ -70,6 +70,8 @@ function inicializar() {
   carregarTCs('todas');
   carregarTcsPendentesPainel();
   carregarQuestoes();
+  carregarCicloAluno();
+  navegarPastaAluno(null);
 }
 
 function chip(txt, cls = '') {
@@ -107,6 +109,7 @@ async function criarSessao(e) {
   document.getElementById('sData').value = new Date().toISOString().slice(0, 10);
   carregarStats();
   carregarSessoes();
+  carregarCicloAluno();
 }
 
 async function carregarStats() {
@@ -160,7 +163,7 @@ window.excluirSessao = async function (id) {
   const { error } = await window.db.from('sessoes_estudo').delete().eq('id', id);
   if (error) { toast(error.message, 'err'); return; }
   toast('Sessão excluída', 'ok');
-  carregarStats(); carregarSessoes();
+  carregarStats(); carregarSessoes(); carregarCicloAluno();
 };
 
 // ---------- TCs ----------
@@ -238,6 +241,213 @@ async function carregarQuestoes() {
   if (!data.length) { el.innerHTML = `<p class="muted">Nenhuma questão encontrada com esses filtros.</p>`; return; }
   el.innerHTML = data.map(cardQuestao).join('');
 }
+
+// ==========================================================
+// CICLO DE ESTUDOS (aluno)
+// ==========================================================
+async function carregarCicloAluno() {
+  const inicio = window.inicioSemana();
+  const fim = new Date(inicio); fim.setDate(fim.getDate() + 6);
+  const inicioISO = inicio.toISOString().slice(0, 10);
+
+  document.getElementById('cicloPeriodo').textContent =
+    `Semana de ${fmtData(inicio.toISOString())} a ${fmtData(fim.toISOString())}`;
+
+  const [{ data: metas }, { data: sessoes }] = await Promise.all([
+    window.db.from('ciclo_metas').select('*').eq('aluno_id', CURRENT.session.user.id),
+    window.db.from('sessoes_estudo')
+      .select('materia, duracao_minutos')
+      .eq('aluno_id', CURRENT.session.user.id)
+      .gte('data_estudo', inicioISO),
+  ]);
+
+  const ativas = (metas || []).filter(m => m.minutos_semanais > 0);
+  const lista = document.getElementById('cicloAlunoLista');
+
+  if (!ativas.length) {
+    lista.innerHTML = `
+      <div class="panel panel-body" style="text-align:center;">
+        <p class="muted">Seu ciclo ainda não foi configurado pelo mentor.</p>
+        <p class="small muted">Quando ele definir suas horas semanais por matéria, elas aparecem aqui com bolinhas pra você marcar conforme estuda.</p>
+      </div>`;
+    document.getElementById('cicloPctGeral').textContent = '0%';
+    document.getElementById('cicloTotalGeral').textContent = '0h / 0h';
+    return;
+  }
+
+  const acumulado = {};
+  (sessoes || []).forEach(s => { acumulado[s.materia] = (acumulado[s.materia] || 0) + s.duracao_minutos; });
+
+  let totalMeta = 0, totalFeito = 0;
+  ativas.forEach(m => {
+    totalMeta += m.minutos_semanais;
+    totalFeito += Math.min(m.minutos_semanais, acumulado[m.materia] || 0);
+  });
+  const pct = totalMeta ? Math.round((totalFeito / totalMeta) * 100) : 0;
+  document.getElementById('cicloPctGeral').textContent = pct + '%';
+  document.getElementById('cicloTotalGeral').textContent =
+    `${window.fmtMin(totalFeito)} / ${window.fmtMin(totalMeta)}`;
+
+  lista.innerHTML = ativas.map(m => renderCardCicloAluno(m, acumulado[m.materia] || 0)).join('');
+}
+
+function renderCardCicloAluno(meta, minutosFeitos) {
+  const total = meta.minutos_semanais;
+  const pct = Math.min(100, (minutosFeitos / total) * 100);
+  const totalBolinhas = Math.max(1, Math.ceil(total / 30));
+  const cheias = Math.floor(minutosFeitos / 30);
+  const minutoParcial = minutosFeitos % 30;
+  const completo = minutosFeitos >= total;
+
+  let bolinhas = '';
+  for (let i = 0; i < totalBolinhas; i++) {
+    if (i < cheias) bolinhas += '<div class="bolinha cheia"></div>';
+    else if (i === cheias && minutoParcial > 0) {
+      const p = (minutoParcial / 30) * 100;
+      bolinhas += `<div class="bolinha parcial" style="--p:${p}%"></div>`;
+    } else bolinhas += '<div class="bolinha"></div>';
+  }
+
+  return `
+    <div class="ciclo-card ${completo ? 'completo' : ''}">
+      <div class="ciclo-head">
+        <span class="ciclo-materia">${escapeHtml(meta.materia)}</span>
+        <span class="ciclo-progresso">${window.fmtMin(minutosFeitos)} / ${window.fmtMin(total)}</span>
+      </div>
+      <div class="bolinhas">${bolinhas}</div>
+      <div class="ciclo-bar"><div style="width:${pct}%;"></div></div>
+      <div class="ciclo-actions mt-2">
+        <button class="btn btn-sm" onclick="registroRapido('${escapeHtml(meta.materia)}', 30)">+30min</button>
+        <button class="btn btn-ghost btn-sm" onclick="registroRapido('${escapeHtml(meta.materia)}', 60)">+1h</button>
+      </div>
+    </div>
+  `;
+}
+
+window.registroRapido = async function (materia, minutos) {
+  const payload = {
+    aluno_id: CURRENT.session.user.id,
+    materia,
+    duracao_minutos: minutos,
+    data_estudo: new Date().toISOString().slice(0, 10),
+    observacoes: 'Registro rápido (ciclo)',
+  };
+  const { error } = await window.db.from('sessoes_estudo').insert(payload);
+  if (error) { toast(error.message, 'err'); return; }
+  toast(`+${minutos}min em ${materia}.`, 'ok');
+  carregarStats();
+  carregarSessoes();
+  carregarCicloAluno();
+};
+
+// ==========================================================
+// ACERVO (aluno — só leitura)
+// ==========================================================
+let PASTA_ATUAL_AL = null;
+let CAMINHO_AL = [];
+
+async function navegarPastaAluno(pastaId) {
+  PASTA_ATUAL_AL = pastaId;
+  if (pastaId === null) CAMINHO_AL = [];
+  else {
+    CAMINHO_AL = [];
+    let atual = pastaId;
+    while (atual) {
+      const { data } = await window.db.from('pastas').select('id, nome, parent_id').eq('id', atual).single();
+      if (!data) break;
+      CAMINHO_AL.unshift({ id: data.id, nome: data.nome });
+      atual = data.parent_id;
+    }
+  }
+  renderBreadcrumbAluno();
+  renderConteudoAcervoAluno();
+}
+window.navegarPastaAluno = navegarPastaAluno;
+
+function renderBreadcrumbAluno() {
+  const el = document.getElementById('breadcrumbAluno');
+  let html = `<a href="#" onclick="navegarPastaAluno(null); return false;">Raiz</a>`;
+  CAMINHO_AL.forEach((p, i) => {
+    const ult = i === CAMINHO_AL.length - 1;
+    html += ` <span class="sep">›</span> `;
+    html += ult
+      ? `<span class="atual">${escapeHtml(p.nome)}</span>`
+      : `<a href="#" onclick="navegarPastaAluno('${p.id}'); return false;">${escapeHtml(p.nome)}</a>`;
+  });
+  el.innerHTML = html;
+}
+
+async function renderConteudoAcervoAluno() {
+  const el = document.getElementById('acervoConteudoAluno');
+  el.innerHTML = '<p class="muted small">Carregando...</p>';
+  const [{ data: pastas }, { data: mats }] = await Promise.all([
+    PASTA_ATUAL_AL
+      ? window.db.from('pastas').select('*').eq('parent_id', PASTA_ATUAL_AL).order('ordem').order('nome')
+      : window.db.from('pastas').select('*').is('parent_id', null).order('ordem').order('nome'),
+    PASTA_ATUAL_AL
+      ? window.db.from('materiais').select('*').eq('pasta_id', PASTA_ATUAL_AL).order('ordem').order('created_at')
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const cards = [];
+  (pastas || []).forEach(p => {
+    cards.push(`
+      <div class="acervo-card" onclick="navegarPastaAluno('${p.id}')">
+        <div class="ac-icon">${window.iconeMat(p.tipo)}</div>
+        <div class="ac-meta">${p.tipo === 'curso' ? 'Curso' : 'Pasta'}</div>
+        <div class="ac-titulo">${escapeHtml(p.nome)}</div>
+        ${p.descricao ? `<div class="muted small">${escapeHtml(p.descricao)}</div>` : ''}
+      </div>
+    `);
+  });
+  (mats || []).forEach(m => {
+    cards.push(`
+      <div class="acervo-card" onclick='abrirMaterialAluno(${JSON.stringify(m).replace(/'/g, "&#39;")})'>
+        <div class="ac-icon">${window.iconeMat(m.tipo)}</div>
+        <div class="ac-meta">${window.LABEL_TIPO[m.tipo]}</div>
+        <div class="ac-titulo">${escapeHtml(m.titulo)}</div>
+        ${m.descricao ? `<div class="muted small">${escapeHtml(m.descricao.slice(0, 90))}${m.descricao.length > 90 ? '...' : ''}</div>` : ''}
+      </div>
+    `);
+  });
+
+  el.innerHTML = cards.length
+    ? `<div class="acervo-grid">${cards.join('')}</div>`
+    : '<p class="muted">Esta pasta está vazia.</p>';
+}
+
+window.abrirMaterialAluno = function (m) {
+  let body = '';
+  if (m.tipo === 'video') {
+    body = window.embedVideo(m.url);
+  } else if (m.tipo === 'pdf' || m.tipo === 'lista') {
+    if (m.url) {
+      body = `<div class="player-wrap"><iframe src="${escapeHtml(m.url)}"></iframe></div>
+              <p class="mt-2"><a href="${escapeHtml(m.url)}" target="_blank">Abrir em nova aba ↗</a></p>`;
+    } else {
+      body = '<p class="muted">Sem arquivo associado.</p>';
+    }
+  } else if (m.tipo === 'dica') {
+    body = `<div style="white-space:pre-wrap; line-height:1.7;">${escapeHtml(m.conteudo || '')}</div>`;
+  }
+  const html = `
+    <div class="panel-head">
+      <h3 class="panel-title">${escapeHtml(m.titulo)}</h3>
+    </div>
+    <div class="panel-body">
+      <div class="row wrap" style="gap:.4rem; margin-bottom:.8rem;">
+        <span class="chip gold">${window.LABEL_TIPO[m.tipo]}</span>
+      </div>
+      ${m.descricao ? `<p class="muted">${escapeHtml(m.descricao)}</p>` : ''}
+      <div class="mt-2">${body}</div>
+    </div>
+  `;
+  const back = document.createElement('div');
+  back.className = 'modal-backdrop';
+  back.onclick = e => { if (e.target === back) back.remove(); };
+  back.innerHTML = `<div class="modal panel"><button class="modal-close" onclick="this.closest('.modal-backdrop').remove()">×</button>${html}</div>`;
+  document.body.appendChild(back);
+};
 
 function cardQuestao(q) {
   const alternativas = q.alternativas && typeof q.alternativas === 'object'
