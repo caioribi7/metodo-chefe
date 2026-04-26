@@ -142,7 +142,7 @@ async function carregarAlunos() {
   }
 
   // Horas de estudo dos últimos 7 dias
-  const seteAtras = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+  const seteAtras = window.dataLocal(new Date(Date.now() - 6 * 86400000));
   const { data: sess } = await window.db
     .from('sessoes_estudo').select('aluno_id, duracao_minutos')
     .gte('data_estudo', seteAtras);
@@ -906,7 +906,7 @@ async function salvarCiclo() {
 
 async function renderizarCicloPreview(alunoId) {
   const inicio = window.inicioSemana();
-  const inicioISO = inicio.toISOString().slice(0, 10);
+  const inicioISO = window.dataLocal(inicio);
 
   const [{ data: metas }, { data: sessoes }] = await Promise.all([
     window.db.from('ciclo_metas').select('*').eq('aluno_id', alunoId),

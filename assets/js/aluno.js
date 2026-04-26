@@ -3,6 +3,7 @@
 // ==========================================================
 
 let CURRENT = null; // { session, profile }
+let RANKING_ATUAL = 'semana';
 
 (async () => {
   const r = await window.requireAuth('aluno');
@@ -26,9 +27,12 @@ function inicializar() {
   // Popula selects de matéria
   const sMat = document.getElementById('sMateria');
   const qfMat = document.getElementById('qfMateria');
+  const cronMat = document.getElementById('cronMateria');
   sMat.innerHTML = '<option value="">Selecione...</option>';
+  cronMat.innerHTML = '<option value="">Selecione a matéria...</option>';
   window.MATERIAS.forEach(m => {
     sMat.insertAdjacentHTML('beforeend', `<option>${m}</option>`);
+    cronMat.insertAdjacentHTML('beforeend', `<option>${m}</option>`);
     qfMat.insertAdjacentHTML('beforeend', `<option>${m}</option>`);
   });
 
@@ -39,8 +43,8 @@ function inicializar() {
   const qfNivel = document.getElementById('qfNivel');
   window.NIVEIS.forEach(n => qfNivel.insertAdjacentHTML('beforeend', `<option value="${n.v}">${n.label}</option>`));
 
-  // Data atual
-  document.getElementById('sData').value = new Date().toISOString().slice(0, 10);
+  // Data atual (fuso local)
+  document.getElementById('sData').value = window.dataHojeLocal();
 
   // Tabs
   document.querySelectorAll('[data-tab]').forEach(a => {
@@ -71,13 +75,22 @@ function inicializar() {
   });
   document.getElementById('qfAssunto').addEventListener('input', debounce(carregarQuestoes, 300));
 
+  // Cronômetro
+  iniciarCronometro();
+
+  // Ranking — botões de toggle
+  document.querySelectorAll('[data-rank]').forEach(b => {
+    b.addEventListener('click', () => carregarRanking(b.dataset.rank));
+  });
+
   // Carregas iniciais
-  carregarStats();
+  carregarDashboard();
   carregarSessoes();
   carregarTCs('todas');
   carregarTcsPendentesPainel();
   carregarQuestoes();
   carregarCicloAluno();
+  carregarRanking('semana');
   navegarPastaAluno(null);
 }
 
@@ -113,25 +126,121 @@ async function criarSessao(e) {
   if (error) { toast('Erro: ' + error.message, 'err'); return; }
   toast('Sessão registrada. Continue firme.', 'ok');
   e.target.reset();
-  document.getElementById('sData').value = new Date().toISOString().slice(0, 10);
-  carregarStats();
+  document.getElementById('sData').value = window.dataHojeLocal();
+  carregarDashboard();
   carregarSessoes();
   carregarCicloAluno();
+  carregarRanking(RANKING_ATUAL);
 }
 
-async function carregarStats() {
-  const hoje = new Date().toISOString().slice(0, 10);
-  const semanaInicio = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+async function carregarStats() { /* legado — usa carregarDashboard() */ return carregarDashboard(); }
 
+async function carregarDashboard() {
+  const hoje = window.dataHojeLocal();
+  const seteAtras = window.dataLocal(new Date(Date.now() - 6 * 86400000));
+  const trintaAtras = window.dataLocal(new Date(Date.now() - 29 * 86400000));
+
+  // Tudo que precisamos: sessões dos últimos 91 dias + total geral
+  const noventaUmAtras = window.dataLocal(new Date(Date.now() - 90 * 86400000));
   const { data: sessoes } = await window.db
     .from('sessoes_estudo')
-    .select('duracao_minutos, data_estudo')
-    .gte('data_estudo', semanaInicio);
+    .select('materia, duracao_minutos, data_estudo')
+    .gte('data_estudo', noventaUmAtras);
 
-  const totHoje = (sessoes || []).filter(s => s.data_estudo === hoje).reduce((a, b) => a + b.duracao_minutos, 0);
-  const totSemana = (sessoes || []).reduce((a, b) => a + b.duracao_minutos, 0);
-  document.getElementById('statHoje').textContent = formatarHoras(totHoje);
-  document.getElementById('statSemana').textContent = formatarHoras(totSemana);
+  const { data: total } = await window.db
+    .from('sessoes_estudo')
+    .select('duracao_minutos');
+  const totGeral = (total || []).reduce((a, b) => a + b.duracao_minutos, 0);
+
+  const sess = sessoes || [];
+  const sumIf = pred => sess.filter(pred).reduce((a, b) => a + b.duracao_minutos, 0);
+
+  const totHoje = sumIf(s => s.data_estudo === hoje);
+  const totSemana = sumIf(s => s.data_estudo >= seteAtras);
+  const totMes = sumIf(s => s.data_estudo >= trintaAtras);
+
+  document.getElementById('dashHoje').textContent = formatarHoras(totHoje);
+  document.getElementById('dashSemana').textContent = formatarHoras(totSemana);
+  document.getElementById('dashMes').textContent = formatarHoras(totMes);
+  document.getElementById('dashTotal').textContent = formatarHoras(totGeral);
+  document.getElementById('dashStreak').textContent = calcularStreak(sess);
+
+  renderHeatmap(sess);
+  renderBarrasMateria(sess.filter(s => s.data_estudo >= trintaAtras));
+}
+
+function calcularStreak(sessoes) {
+  const dias = new Set(sessoes.map(s => s.data_estudo));
+  let streak = 0;
+  const cursor = new Date();
+  // Se hoje não tem ainda, streak começa de ontem
+  if (!dias.has(window.dataLocal(cursor))) cursor.setDate(cursor.getDate() - 1);
+  while (dias.has(window.dataLocal(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function renderHeatmap(sessoes) {
+  const el = document.getElementById('heatmap');
+  // 13 semanas = 91 dias
+  const dias = 91;
+  const fim = new Date();
+  const inicio = new Date(fim);
+  inicio.setDate(inicio.getDate() - (dias - 1));
+  // alinha início pra segunda da primeira semana
+  const diaSemana = inicio.getDay(); // 0 dom .. 6 sab
+  const offsetSeg = diaSemana === 0 ? -6 : 1 - diaSemana;
+  inicio.setDate(inicio.getDate() + offsetSeg);
+
+  const porDia = {};
+  sessoes.forEach(s => { porDia[s.data_estudo] = (porDia[s.data_estudo] || 0) + s.duracao_minutos; });
+
+  const niveis = (min) => {
+    if (!min) return '';
+    if (min < 30) return 'l1';
+    if (min < 90) return 'l2';
+    if (min < 180) return 'l3';
+    return 'l4';
+  };
+
+  // construir grade ordenada por coluna (semana) -> linha (dia da semana, seg=0)
+  const totalDias = Math.ceil((fim - inicio) / 86400000) + 1;
+  const cells = [];
+  // CSS está com grid-auto-flow: column, então preenchemos por colunas (semanas)
+  // mas DOM order: queremos linha 1 = segunda. CSS column flow: cada 7 itens vira coluna.
+  // Vamos preencher por coluna: para cada semana, 7 dias de seg a dom
+  for (let c = 0; c < Math.ceil(totalDias / 7); c++) {
+    for (let r = 0; r < 7; r++) {
+      const idx = c * 7 + r;
+      const d = new Date(inicio);
+      d.setDate(d.getDate() + idx);
+      if (d > fim) { cells.push(`<div class="heat-cell" style="visibility:hidden"></div>`); continue; }
+      const iso = window.dataLocal(d);
+      const min = porDia[iso] || 0;
+      const ehHoje = iso === window.dataHojeLocal();
+      const cls = `heat-cell ${niveis(min)} ${ehHoje ? 'hoje' : ''}`;
+      const titulo = `${d.toLocaleDateString('pt-BR')} — ${formatarHoras(min)}`;
+      cells.push(`<div class="${cls}" title="${titulo}"></div>`);
+    }
+  }
+  el.innerHTML = cells.join('');
+}
+
+function renderBarrasMateria(sessoes) {
+  const el = document.getElementById('barrasMateria');
+  const por = {};
+  sessoes.forEach(s => { por[s.materia] = (por[s.materia] || 0) + s.duracao_minutos; });
+  const lista = Object.entries(por).sort((a, b) => b[1] - a[1]);
+  if (!lista.length) { el.innerHTML = '<p class="muted small">Nenhuma sessão nos últimos 30 dias.</p>'; return; }
+  const max = lista[0][1];
+  el.innerHTML = '<div class="barras-materia">' + lista.map(([m, min]) => `
+    <div class="barra">
+      <div class="barra-label"><span>${escapeHtml(m)}</span><span class="v">${formatarHoras(min)}</span></div>
+      <div class="barra-track"><div class="barra-fill" style="width:${(min / max * 100).toFixed(1)}%;"></div></div>
+    </div>
+  `).join('') + '</div>';
 }
 
 function formatarHoras(min) {
@@ -197,7 +306,7 @@ async function carregarTcsPendentesPainel() {
 }
 
 function cardTC(t) {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = window.dataHojeLocal();
   const atrasada = t.status === 'pendente' && t.prazo && t.prazo < hoje;
   const concluida = t.status === 'concluida';
   return `
@@ -261,7 +370,7 @@ async function carregarQuestoes() {
 async function carregarCicloAluno() {
   const inicio = window.inicioSemana();
   const fim = new Date(inicio); fim.setDate(fim.getDate() + 6);
-  const inicioISO = inicio.toISOString().slice(0, 10);
+  const inicioISO = window.dataLocal(inicio);
 
   document.getElementById('cicloPeriodo').textContent =
     `Semana de ${fmtData(inicio.toISOString())} a ${fmtData(fim.toISOString())}`;
@@ -342,7 +451,7 @@ window.registroRapido = async function (materia, minutos) {
     aluno_id: CURRENT.session.user.id,
     materia,
     duracao_minutos: minutos,
-    data_estudo: new Date().toISOString().slice(0, 10),
+    data_estudo: window.dataHojeLocal(),
     observacoes: 'Registro rápido (ciclo)',
   };
   const { error } = await window.db.from('sessoes_estudo').insert(payload);
@@ -496,4 +605,199 @@ function cardQuestao(q) {
         </details>` : ''}
     </div>
   `;
+}
+
+// ==========================================================
+// CRONÔMETRO
+// ==========================================================
+const CRON_KEY = 'mc_cron_estado';
+let CRON_TICK = null;
+let CRON = { rodando: false, inicio: null, acumulado: 0, materia: '', topico: '' };
+
+function iniciarCronometro() {
+  // Restaura estado
+  try {
+    const raw = localStorage.getItem(CRON_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && typeof s === 'object') {
+        CRON = { ...CRON, ...s };
+        if (CRON.materia) document.getElementById('cronMateria').value = CRON.materia;
+        if (CRON.topico) document.getElementById('cronTopico').value = CRON.topico;
+      }
+    }
+  } catch (_) {}
+
+  document.getElementById('btnCronStart').addEventListener('click', cronStart);
+  document.getElementById('btnCronPause').addEventListener('click', cronPause);
+  document.getElementById('btnCronResume').addEventListener('click', cronResume);
+  document.getElementById('btnCronStop').addEventListener('click', cronStop);
+  document.getElementById('btnCronCancel').addEventListener('click', cronCancel);
+
+  document.getElementById('cronMateria').addEventListener('change', (e) => {
+    CRON.materia = e.target.value; salvarCron();
+  });
+  document.getElementById('cronTopico').addEventListener('input', (e) => {
+    CRON.topico = e.target.value; salvarCron();
+  });
+
+  if (CRON.rodando) iniciarTick();
+  else if (CRON.acumulado > 0) {
+    // estava pausado
+    mostrarBotoesEstado('pausado');
+  }
+  atualizarDisplay();
+}
+
+function salvarCron() {
+  try { localStorage.setItem(CRON_KEY, JSON.stringify(CRON)); } catch (_) {}
+}
+
+function segundosAcumulados() {
+  let s = CRON.acumulado;
+  if (CRON.rodando && CRON.inicio) s += (Date.now() - CRON.inicio) / 1000;
+  return Math.floor(s);
+}
+
+function atualizarDisplay() {
+  const seg = segundosAcumulados();
+  document.getElementById('cronDisplay').textContent = window.fmtSeg(seg);
+}
+
+function iniciarTick() {
+  if (CRON_TICK) clearInterval(CRON_TICK);
+  CRON_TICK = setInterval(atualizarDisplay, 1000);
+  document.getElementById('cronometro').classList.add('rodando');
+  document.getElementById('cronStatus').textContent = 'EM ESTUDO';
+  mostrarBotoesEstado('rodando');
+}
+
+function pararTick() {
+  if (CRON_TICK) { clearInterval(CRON_TICK); CRON_TICK = null; }
+  document.getElementById('cronometro').classList.remove('rodando');
+}
+
+function mostrarBotoesEstado(estado) {
+  const ids = ['btnCronStart', 'btnCronPause', 'btnCronResume', 'btnCronStop', 'btnCronCancel'];
+  ids.forEach(id => document.getElementById(id).classList.add('hidden'));
+  if (estado === 'parado') {
+    document.getElementById('btnCronStart').classList.remove('hidden');
+    document.getElementById('cronStatus').textContent = 'PRONTO';
+  } else if (estado === 'rodando') {
+    document.getElementById('btnCronPause').classList.remove('hidden');
+    document.getElementById('btnCronStop').classList.remove('hidden');
+  } else if (estado === 'pausado') {
+    document.getElementById('btnCronResume').classList.remove('hidden');
+    document.getElementById('btnCronStop').classList.remove('hidden');
+    document.getElementById('btnCronCancel').classList.remove('hidden');
+    document.getElementById('cronStatus').textContent = 'PAUSADO';
+  }
+}
+
+function cronStart() {
+  const mat = document.getElementById('cronMateria').value;
+  if (!mat) { toast('Escolha a matéria antes de iniciar.', 'err'); return; }
+  CRON = {
+    rodando: true,
+    inicio: Date.now(),
+    acumulado: 0,
+    materia: mat,
+    topico: document.getElementById('cronTopico').value.trim(),
+  };
+  salvarCron();
+  iniciarTick();
+}
+
+function cronPause() {
+  if (!CRON.rodando) return;
+  CRON.acumulado += (Date.now() - CRON.inicio) / 1000;
+  CRON.rodando = false;
+  CRON.inicio = null;
+  salvarCron();
+  pararTick();
+  mostrarBotoesEstado('pausado');
+}
+
+function cronResume() {
+  CRON.rodando = true;
+  CRON.inicio = Date.now();
+  salvarCron();
+  iniciarTick();
+}
+
+async function cronStop() {
+  // Calcula minutos finais
+  const seg = segundosAcumulados();
+  const minutos = Math.max(1, Math.round(seg / 60));
+  if (seg < 30) {
+    if (!confirm(`Só ${seg} segundos de estudo. Registrar mesmo assim?`)) return;
+  }
+
+  pararTick();
+  const payload = {
+    aluno_id: CURRENT.session.user.id,
+    materia: CRON.materia,
+    topico: CRON.topico || null,
+    duracao_minutos: minutos,
+    data_estudo: window.dataHojeLocal(),
+    observacoes: 'Cronômetro',
+  };
+  const { error } = await window.db.from('sessoes_estudo').insert(payload);
+  if (error) { toast(error.message, 'err'); iniciarTick(); return; }
+
+  toast(`✓ Sessão de ${window.fmtMin(minutos)} registrada em ${CRON.materia}.`, 'ok');
+  cronReset();
+  carregarDashboard();
+  carregarSessoes();
+  carregarCicloAluno();
+  carregarRanking(RANKING_ATUAL);
+}
+
+function cronCancel() {
+  if (!confirm('Descartar o cronômetro sem registrar?')) return;
+  cronReset();
+  toast('Cronômetro zerado.', '');
+}
+
+function cronReset() {
+  pararTick();
+  CRON = { rodando: false, inicio: null, acumulado: 0, materia: '', topico: '' };
+  localStorage.removeItem(CRON_KEY);
+  document.getElementById('cronTopico').value = '';
+  document.getElementById('cronMateria').value = '';
+  atualizarDisplay();
+  mostrarBotoesEstado('parado');
+}
+
+// ==========================================================
+// RANKING
+// ==========================================================
+async function carregarRanking(modo) {
+  RANKING_ATUAL = modo;
+  document.querySelectorAll('[data-rank]').forEach(b => {
+    b.classList.toggle('active', b.dataset.rank === modo);
+  });
+  const fn = modo === 'total' ? 'ranking_total' : 'ranking_semanal';
+  const { data, error } = await window.db.rpc(fn);
+  const el = document.getElementById('rankingBox');
+  if (error) { el.innerHTML = `<p class="muted small">${error.message}</p>`; return; }
+  if (!data || !data.length) {
+    el.innerHTML = '<p class="muted small">Ninguém estudou ainda nesse período. Seja o primeiro!</p>';
+    return;
+  }
+  const myId = CURRENT.session.user.id;
+  el.innerHTML = data.slice(0, 20).map(r => {
+    const eh = r.aluno_id === myId;
+    const top = r.posicao === 1 ? 'top1' : r.posicao === 2 ? 'top2' : r.posicao === 3 ? 'top3' : '';
+    const medalha = r.posicao === 1 ? '🥇' : r.posicao === 2 ? '🥈' : r.posicao === 3 ? '🥉' : '';
+    const primeiroNome = String(r.nome).split(' ')[0];
+    return `
+      <div class="rank-row ${top} ${eh ? 'eu' : ''}">
+        <div class="rank-pos">${r.posicao}</div>
+        <div class="rank-medal">${medalha}</div>
+        <div class="rank-nome">${escapeHtml(primeiroNome)}${eh ? ' <span class="muted small">(você)</span>' : ''}</div>
+        <div class="rank-horas">${window.fmtMin(Number(r.minutos))}</div>
+      </div>
+    `;
+  }).join('');
 }

@@ -34,63 +34,83 @@
 <main class="shell">
   <!-- Cabeçalho do aluno -->
   <section class="panel panel-body" style="margin-bottom:1.5rem;">
-    <div class="row between wrap">
-      <div>
-        <div class="kicker">Bem-vindo de volta</div>
-        <h1 class="panel-title" style="font-size:1.8rem; margin-top:.25rem;" id="boasVindas">Soldado</h1>
-        <div class="row wrap mt-2" id="perfilChips"></div>
-      </div>
-      <div class="row">
-        <div class="stat" style="min-width:140px;">
-          <div class="stat-kicker">Hoje</div>
-          <div class="stat-value" id="statHoje">0h</div>
-          <div class="stat-sub">minutos estudados</div>
-        </div>
-        <div class="stat" style="min-width:140px;">
-          <div class="stat-kicker">Semana</div>
-          <div class="stat-value" id="statSemana">0h</div>
-          <div class="stat-sub">últimos 7 dias</div>
-        </div>
-      </div>
-    </div>
+    <div class="kicker">Bem-vindo de volta</div>
+    <h1 class="panel-title" style="font-size:1.8rem; margin-top:.25rem;" id="boasVindas">Soldado</h1>
+    <div class="row wrap mt-2" id="perfilChips"></div>
   </section>
 
   <!-- ABA: PAINEL -->
   <section data-painel="painel">
+    <!-- Stats grandes -->
+    <div class="stats-grid mb-2">
+      <div class="stat"><div class="stat-kicker">Hoje</div><div class="stat-value" id="dashHoje">0h</div><div class="stat-sub">tempo estudado</div></div>
+      <div class="stat"><div class="stat-kicker">Semana</div><div class="stat-value" id="dashSemana">0h</div><div class="stat-sub">últimos 7 dias</div></div>
+      <div class="stat"><div class="stat-kicker">Mês</div><div class="stat-value" id="dashMes">0h</div><div class="stat-sub">últimos 30 dias</div></div>
+      <div class="stat"><div class="stat-kicker">Ofensiva</div><div class="stat-value" id="dashStreak">0</div><div class="stat-sub">dias consecutivos</div></div>
+      <div class="stat"><div class="stat-kicker">Total</div><div class="stat-value" id="dashTotal">0h</div><div class="stat-sub">desde o alistamento</div></div>
+    </div>
+
     <div class="grid grid-2">
+      <!-- CRONÔMETRO -->
       <div class="panel">
-        <div class="panel-head">
-          <h2 class="panel-title">Registrar sessão de estudo</h2>
-        </div>
+        <div class="panel-head"><h2 class="panel-title">Cronômetro de estudo</h2></div>
         <div class="panel-body">
-          <form id="formSessao">
-            <div class="field">
-              <label for="sMateria">Matéria</label>
-              <select class="select" id="sMateria" required></select>
-            </div>
-            <div class="field">
-              <label for="sTopico">Tópico</label>
-              <input class="input" id="sTopico" placeholder="Ex.: Geometria analítica — cônicas" />
-            </div>
-            <div class="grid grid-2" style="gap:1rem;">
-              <div class="field">
-                <label for="sDuracao">Duração (minutos)</label>
-                <input class="input" id="sDuracao" type="number" min="1" required />
+          <div id="cronometro" class="cronometro">
+            <div class="cron-status" id="cronStatus">PRONTO</div>
+            <div class="cron-display" id="cronDisplay">00:00</div>
+            <div class="cron-grid">
+              <div class="field" style="margin:0;">
+                <label>Matéria</label>
+                <select class="select" id="cronMateria"></select>
               </div>
-              <div class="field">
-                <label for="sData">Data</label>
-                <input class="input" id="sData" type="date" required />
+              <div class="field" style="margin:0;">
+                <label>Tópico</label>
+                <input class="input" id="cronTopico" placeholder="Ex.: Cônicas" />
               </div>
             </div>
-            <div class="field">
-              <label for="sObs">Observações</label>
-              <textarea class="textarea" id="sObs" placeholder="Dúvidas, dificuldades, recados..."></textarea>
+            <div class="cron-actions">
+              <button class="btn" id="btnCronStart">▶ Iniciar</button>
+              <button class="btn btn-ghost hidden" id="btnCronPause">⏸ Pausar</button>
+              <button class="btn btn-ghost hidden" id="btnCronResume">▶ Continuar</button>
+              <button class="btn btn-danger hidden" id="btnCronStop">⏹ Parar e registrar</button>
+              <button class="btn btn-danger hidden" id="btnCronCancel">✕ Cancelar</button>
             </div>
-            <button class="btn" type="submit">Registrar sessão</button>
-          </form>
+          </div>
+
+          <details style="margin-top:1.2rem;">
+            <summary style="cursor:pointer; color:var(--gold); font-family:'JetBrains Mono', monospace; font-size:.7rem; letter-spacing:.2em; text-transform:uppercase;">▸ Registrar manualmente</summary>
+            <form id="formSessao" style="margin-top:1rem;">
+              <div class="grid grid-2" style="gap:.8rem;">
+                <div class="field">
+                  <label for="sMateria">Matéria</label>
+                  <select class="select" id="sMateria" required></select>
+                </div>
+                <div class="field">
+                  <label for="sTopico">Tópico</label>
+                  <input class="input" id="sTopico" placeholder="Ex.: Cônicas" />
+                </div>
+              </div>
+              <div class="grid grid-2" style="gap:.8rem;">
+                <div class="field">
+                  <label for="sDuracao">Duração (min)</label>
+                  <input class="input" id="sDuracao" type="number" min="1" required />
+                </div>
+                <div class="field">
+                  <label for="sData">Data</label>
+                  <input class="input" id="sData" type="date" required />
+                </div>
+              </div>
+              <div class="field">
+                <label for="sObs">Observações</label>
+                <textarea class="textarea" id="sObs"></textarea>
+              </div>
+              <button class="btn btn-sm" type="submit">Registrar</button>
+            </form>
+          </details>
         </div>
       </div>
 
+      <!-- TCs pendentes -->
       <div class="panel">
         <div class="panel-head">
           <h2 class="panel-title">TCs pendentes</h2>
@@ -99,6 +119,51 @@
         <div class="panel-body" id="listaTcsPendentes">
           <p class="muted small">Carregando...</p>
         </div>
+      </div>
+    </div>
+
+    <!-- Heatmap + Matérias -->
+    <div class="grid grid-2 mt-3">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Calendário de estudos</h2>
+          <span class="muted small">últimos 13 semanas</span>
+        </div>
+        <div class="panel-body">
+          <div id="heatmap" class="heatmap"></div>
+          <div class="heatmap-legend">
+            <span>menos</span>
+            <div class="heat-cell"></div>
+            <div class="heat-cell l1"></div>
+            <div class="heat-cell l2"></div>
+            <div class="heat-cell l3"></div>
+            <div class="heat-cell l4"></div>
+            <span>mais</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Matérias estudadas</h2>
+          <span class="muted small">últimos 30 dias</span>
+        </div>
+        <div class="panel-body" id="barrasMateria">
+          <p class="muted small">Sem dados ainda.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ranking -->
+    <div class="panel mt-3">
+      <div class="panel-head">
+        <h2 class="panel-title">Ranking da semana</h2>
+        <div class="row">
+          <button class="btn btn-ghost btn-sm" data-rank="semana">Semana</button>
+          <button class="btn btn-ghost btn-sm" data-rank="total">Total</button>
+        </div>
+      </div>
+      <div class="panel-body" id="rankingBox">
+        <p class="muted small">Carregando...</p>
       </div>
     </div>
   </section>

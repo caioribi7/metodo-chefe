@@ -89,6 +89,26 @@ window.fmtMin = function (min) {
   return `${h}h${String(m).padStart(2, '0')}`;
 };
 
+// Formata segundos como hh:mm:ss / mm:ss
+window.fmtSeg = function (s) {
+  s = Math.max(0, Math.floor(s));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return h ? `${h}:${pad(m)}:${pad(ss)}` : `${pad(m)}:${pad(ss)}`;
+};
+
+// Data de hoje no fuso local em formato YYYY-MM-DD (evita bug do toISOString em UTC)
+window.dataHojeLocal = function () {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+window.dataLocal = function (date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 // Extrai ID do YouTube de URLs comuns
 window.youtubeId = function (url) {
   if (!url) return null;
