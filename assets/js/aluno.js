@@ -46,12 +46,12 @@ function inicializar() {
   // Data atual (fuso local)
   document.getElementById('sData').value = window.dataHojeLocal();
 
-  // Tabs
-  document.querySelectorAll('[data-tab]').forEach(a => {
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      trocarAba(a.dataset.tab);
-    });
+  // Tabs — event delegation no document (resiliente a elementos criados depois)
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-tab]');
+    if (!t) return;
+    e.preventDefault();
+    trocarAba(t.dataset.tab);
   });
 
   // Sair
@@ -82,6 +82,10 @@ function inicializar() {
   document.querySelectorAll('[data-rank]').forEach(b => {
     b.addEventListener('click', () => carregarRanking(b.dataset.rank));
   });
+
+  // Fórum
+  window.FORUM_USER = { id: CURRENT.session.user.id, nome: CURRENT.profile.nome, isAdmin: false };
+  if (window.iniciarForum) window.iniciarForum();
 
   // Carregas iniciais
   carregarDashboard();
@@ -124,7 +128,7 @@ async function criarSessao(e) {
   };
   const { error } = await window.db.from('sessoes_estudo').insert(payload);
   if (error) { toast('Erro: ' + error.message, 'err'); return; }
-  toast('Sessão registrada. Continue firme.', 'ok');
+  toast('Sessão registrada com sucesso.', 'ok');
   e.target.reset();
   document.getElementById('sData').value = window.dataHojeLocal();
   carregarDashboard();

@@ -27,6 +27,7 @@
     <a href="#ciclo" class="nav-link" data-tab="ciclo">Ciclo</a>
     <a href="#acervo" class="nav-link" data-tab="acervo">Acervo</a>
     <a href="#questoes" class="nav-link" data-tab="questoes">Questões</a>
+    <a href="#duvidas" class="nav-link" data-tab="duvidas">Dúvidas</a>
     <a href="#" class="nav-link" id="btnSair">Sair</a>
   </nav>
 </header>
@@ -35,7 +36,7 @@
   <!-- Cabeçalho do aluno -->
   <section class="panel panel-body" style="margin-bottom:1.5rem;">
     <div class="kicker">Bem-vindo de volta</div>
-    <h1 class="panel-title" style="font-size:1.8rem; margin-top:.25rem;" id="boasVindas">Soldado</h1>
+    <h1 class="panel-title" style="font-size:1.8rem; margin-top:.25rem;" id="boasVindas">Aluno</h1>
     <div class="row wrap mt-2" id="perfilChips"></div>
   </section>
 
@@ -47,7 +48,7 @@
       <div class="stat"><div class="stat-kicker">Semana</div><div class="stat-value" id="dashSemana">0h</div><div class="stat-sub">últimos 7 dias</div></div>
       <div class="stat"><div class="stat-kicker">Mês</div><div class="stat-value" id="dashMes">0h</div><div class="stat-sub">últimos 30 dias</div></div>
       <div class="stat"><div class="stat-kicker">Ofensiva</div><div class="stat-value" id="dashStreak">0</div><div class="stat-sub">dias consecutivos</div></div>
-      <div class="stat"><div class="stat-kicker">Total</div><div class="stat-value" id="dashTotal">0h</div><div class="stat-sub">desde o alistamento</div></div>
+      <div class="stat"><div class="stat-kicker">Total</div><div class="stat-value" id="dashTotal">0h</div><div class="stat-sub">desde o cadastro</div></div>
     </div>
 
     <div class="grid grid-2">
@@ -280,11 +281,54 @@
       </div>
     </div>
   </section>
+
+  <!-- ABA: DÚVIDAS (fórum) -->
+  <section data-painel="duvidas" class="hidden">
+    <div class="grid grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">Nova dúvida</h2></div>
+        <div class="panel-body">
+          <form id="formNovoTopico">
+            <div class="field">
+              <label for="forumNovoTitulo">Título</label>
+              <input class="input" id="forumNovoTitulo" required maxlength="160" placeholder="Resuma sua dúvida em uma frase" />
+            </div>
+            <div class="field">
+              <label for="forumNovoMateria">Matéria</label>
+              <select class="select" id="forumNovoMateria"></select>
+            </div>
+            <div class="field">
+              <label for="forumNovoConteudo">Descrição</label>
+              <textarea class="textarea" id="forumNovoConteudo" required style="min-height:160px;" placeholder="Explique o problema, o que tentou, onde travou..."></textarea>
+            </div>
+            <button class="btn" type="submit">Publicar dúvida</button>
+          </form>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Tópicos</h2>
+          <div class="row wrap" style="gap:.5rem;">
+            <select class="select" id="forumFiltroMat" style="width:auto;"></select>
+            <select class="select" id="forumFiltroStatus" style="width:auto;">
+              <option value="">Todos</option>
+              <option value="aberto">Em aberto</option>
+              <option value="resolvido">Resolvidos</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body" id="forumLista">
+          <p class="muted small">Carregando...</p>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/forum.js"></script>
 <script src="assets/js/aluno.js"></script>
 </body>
 </html>

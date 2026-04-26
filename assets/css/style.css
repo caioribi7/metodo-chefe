@@ -797,6 +797,105 @@ a:hover { color: var(--gold-light); text-decoration: underline; }
 }
 
 /* ==========================================================
+   FÓRUM DE DÚVIDAS
+   ========================================================== */
+.forum-topico {
+  border: 1px solid var(--border);
+  padding: 1rem 1.2rem;
+  margin-bottom: 0.7rem;
+  background: linear-gradient(160deg, rgba(255,255,255,0.02), transparent);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .12s ease;
+}
+.forum-topico:hover {
+  border-color: var(--gold);
+  background: linear-gradient(160deg, rgba(201,169,97,0.06), transparent);
+  transform: translateX(2px);
+}
+.forum-topico.resolvido {
+  border-left: 3px solid var(--success);
+}
+.forum-topico-titulo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  color: var(--cream);
+  margin: 0 0 0.3rem;
+}
+.forum-topico-meta {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--cream-dim);
+  align-items: center;
+}
+.forum-topico-meta .autor { color: var(--gold-light); }
+.forum-topico-conteudo-preview {
+  color: var(--cream-dim);
+  font-size: 0.85rem;
+  margin: 0.4rem 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.resposta {
+  border: 1px solid var(--border);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 0.6rem;
+  background: rgba(255,255,255,0.02);
+}
+.resposta.solucao {
+  border-color: var(--success);
+  background: rgba(58,159,110,0.08);
+}
+.resposta.do-admin {
+  border-color: var(--border-strong);
+  background: linear-gradient(160deg, rgba(201,169,97,0.06), transparent);
+}
+.resposta-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.resposta-autor {
+  font-family: 'Playfair Display', serif;
+  color: var(--gold-light);
+}
+.resposta-autor .badge-admin {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.4rem;
+}
+.resposta-conteudo {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: var(--cream);
+}
+.badge-solucao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--success);
+  border: 1px solid var(--success);
+  padding: 0.15rem 0.45rem;
+  background: rgba(58,159,110,0.1);
+}
+
+/* ==========================================================
    MENU MOBILE — hambúrguer
    ========================================================== */
 .menu-toggle {

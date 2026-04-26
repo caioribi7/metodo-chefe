@@ -29,15 +29,15 @@
   <div class="auth-card panel" style="width: min(640px, 100%);">
     <div class="panel-head">
       <div>
-        <div class="kicker">Cadastro · Fase 01</div>
-        <h2 class="panel-title" style="margin-top:.25rem;">Cadastro do aluno</h2>
+        <div class="kicker">Cadastro</div>
+        <h2 class="panel-title" style="margin-top:.25rem;">Criar conta de aluno</h2>
       </div>
     </div>
     <div class="panel-body">
       <form id="formCadastro">
         <div class="field">
           <label for="nome">Nome completo</label>
-          <input class="input" id="nome" required placeholder="Como os aliados devem te chamar" />
+          <input class="input" id="nome" required placeholder="Seu nome completo" />
         </div>
 
         <div class="grid grid-2" style="gap:1rem;">
@@ -59,7 +59,7 @@
             <option>1º ano do Ensino Médio</option>
             <option>2º ano do Ensino Médio</option>
             <option>3º ano do Ensino Médio</option>
-            <option>Pré-militar / Cursinho</option>
+            <option>Cursinho / Pré-vestibular</option>
             <option>Já concluí o Ensino Médio</option>
           </select>
         </div>
@@ -67,7 +67,7 @@
         <div class="field">
           <label for="provaMilitar">Prova militar alvo</label>
           <select class="select" id="provaMilitar">
-            <option value="">Nenhuma / Foco só em olimpíadas</option>
+            <option value="">Nenhuma / Foco em olimpíadas</option>
           </select>
         </div>
 
@@ -134,7 +134,7 @@
     if (error) { toast('Erro: ' + error.message, 'err'); return; }
 
     if (data.session) {
-      toast('Cadastro concluído. Bem-vindo, chefe.', 'ok');
+      toast('Cadastro concluído. Bem-vindo!', 'ok');
       setTimeout(() => location.href = 'aluno.html', 1000);
     } else {
       toast('Cadastro criado! Verifique seu e-mail para confirmar.', 'ok');

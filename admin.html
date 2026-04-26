@@ -27,6 +27,7 @@
     <a href="#questoes" class="nav-link" data-tab="questoes">Questões</a>
     <a href="#acervo" class="nav-link" data-tab="acervo">Acervo</a>
     <a href="#ciclo" class="nav-link" data-tab="ciclo">Ciclo</a>
+    <a href="#duvidas" class="nav-link" data-tab="duvidas">Dúvidas</a>
     <a href="#" class="nav-link" id="btnSair">Sair</a>
   </nav>
 </header>
@@ -37,8 +38,8 @@
     <div class="row between wrap">
       <div>
         <div class="kicker">Painel Admin</div>
-        <h1 class="panel-title" style="font-size:1.8rem; margin-top:.25rem;" id="adminNome">Chefe</h1>
-        <p class="muted small">Visão geral dos alunos e das operações em andamento.</p>
+        <h1 class="panel-title" style="font-size:1.8rem; margin-top:.25rem;" id="adminNome">Mentor</h1>
+        <p class="muted small">Visão geral dos alunos e do andamento da mentoria.</p>
       </div>
       <div class="row">
         <div class="stat" style="min-width:140px;"><div class="stat-kicker">Alunos</div><div class="stat-value" id="sAlunos">0</div><div class="stat-sub">ativos</div></div>
@@ -65,7 +66,7 @@
   <!-- ALUNOS -->
   <section data-painel="alunos" class="hidden">
     <div class="panel">
-      <div class="panel-head"><h2 class="panel-title">Tropa</h2></div>
+      <div class="panel-head"><h2 class="panel-title">Alunos</h2></div>
       <div class="panel-body" style="padding:0;">
         <div style="overflow-x:auto;">
           <table class="tbl">
@@ -220,6 +221,48 @@
     </div>
   </section>
 </main>
+
+  <!-- ABA: DÚVIDAS (fórum) -->
+  <section data-painel="duvidas" class="hidden">
+    <div class="grid grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">Nova dúvida / aviso</h2></div>
+        <div class="panel-body">
+          <form id="formNovoTopico">
+            <div class="field">
+              <label for="forumNovoTitulo">Título</label>
+              <input class="input" id="forumNovoTitulo" required maxlength="160" />
+            </div>
+            <div class="field">
+              <label for="forumNovoMateria">Matéria</label>
+              <select class="select" id="forumNovoMateria"></select>
+            </div>
+            <div class="field">
+              <label for="forumNovoConteudo">Conteúdo</label>
+              <textarea class="textarea" id="forumNovoConteudo" required style="min-height:160px;"></textarea>
+            </div>
+            <button class="btn" type="submit">Publicar</button>
+          </form>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Tópicos</h2>
+          <div class="row wrap" style="gap:.5rem;">
+            <select class="select" id="forumFiltroMat" style="width:auto;"></select>
+            <select class="select" id="forumFiltroStatus" style="width:auto;">
+              <option value="">Todos</option>
+              <option value="aberto">Em aberto</option>
+              <option value="resolvido">Resolvidos</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body" id="forumLista">
+          <p class="muted small">Carregando...</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
 <!-- Modal: criar/editar pasta ou curso -->
 <div id="modalPasta" class="modal-backdrop hidden" onclick="if(event.target===this) fecharModalPasta()">
@@ -403,6 +446,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/forum.js"></script>
 <script src="assets/js/admin.js"></script>
 </body>
 </html>

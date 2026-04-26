@@ -20,8 +20,7 @@ const MAX_IMG_BYTES = 5 * 1024 * 1024; // 5 MB
 })();
 
 function inicializar() {
-  document.getElementById('adminNome').textContent =
-    'Chefe ' + CURRENT.profile.nome.split(' ')[0];
+  document.getElementById('adminNome').textContent = CURRENT.profile.nome.split(' ')[0];
 
   // Popular selects
   ['tcMateria', 'qMat', 'aqfMateria'].forEach(id => {
@@ -49,12 +48,12 @@ function inicializar() {
   const aqfNivel = document.getElementById('aqfNivel');
   window.NIVEIS.forEach(n => aqfNivel.insertAdjacentHTML('beforeend', `<option value="${n.v}">${n.label}</option>`));
 
-  // Tabs
-  document.querySelectorAll('[data-tab]').forEach(a => {
-    a.addEventListener('click', e => {
-      e.preventDefault();
-      trocarAba(a.dataset.tab);
-    });
+  // Tabs — event delegation no document
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-tab]');
+    if (!t) return;
+    e.preventDefault();
+    trocarAba(t.dataset.tab);
   });
 
   // Sair
@@ -90,6 +89,10 @@ function inicializar() {
   // Ciclo
   document.getElementById('cicloAluno').addEventListener('change', carregarCicloAluno);
   document.getElementById('btnSalvarCiclo').addEventListener('click', salvarCiclo);
+
+  // Fórum
+  window.FORUM_USER = { id: CURRENT.session.user.id, nome: CURRENT.profile.nome, isAdmin: true };
+  if (window.iniciarForum) window.iniciarForum();
 
   // Carregar tudo
   carregarStats();
